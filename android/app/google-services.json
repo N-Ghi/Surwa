@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "211458928296",
+    "project_id": "surwa-87102",
+    "storage_bucket": "surwa-87102.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211458928296:android:836565e16c85d58c2cdc9d",
+        "android_client_info": {
+          "package_name": "com.example.surwa"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARma-_VtHjOMj9tCEVjEDC1HEL5Y0uq7M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
