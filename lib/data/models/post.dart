@@ -3,7 +3,7 @@ class Post {
   final String posterID;
   final String description;
   final String dateCreated;
-  late final String? imageUrl;
+  String? imageUrl;
   final int timesShared;
 
   Post({
@@ -11,7 +11,7 @@ class Post {
     required this.posterID,
     required this.description,
     required this.dateCreated,
-    required this.imageUrl,
+    this.imageUrl,
     required this.timesShared,
   });
 
@@ -34,7 +34,7 @@ class Post {
       posterID: map['PosterID'] ?? '',
       description: map['Description'] ?? '',
       dateCreated: map['DateCreated'] ?? '',
-      imageUrl: map['ImageUrl'] ?? '',
+      imageUrl: map['ImageUrl'],
       timesShared: map['TimesShared'] ?? 0,
     );
   }

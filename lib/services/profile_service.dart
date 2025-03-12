@@ -21,7 +21,7 @@ class ProfileService {
 
       // Upload image if selected
       if (imageFile != null) {
-        profilePictureUrl = await imagePickerService.uploadImage(imageFile, 'user-uploads');
+        profilePictureUrl = await imagePickerService.uploadProfileImage(imageFile, '${profile.username}');
         print("Profile picture URL: $profilePictureUrl");
       }
 

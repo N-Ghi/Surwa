@@ -24,12 +24,36 @@ class _CreateProfileState extends State<CreateProfile> {
   File? _imageFile;
 
   Future<void> _pickImage() async {
-    File? pickedImage = await _imagePickerService.pickImage(ImageSource.gallery);
-    if (pickedImage != null) {
-      setState(() => _imageFile = pickedImage);
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Center(
+            child: RefreshProgressIndicator(),
+          );
+        },
+      );
+      
+      // Pick image in background
+      File? pickedImage = await _imagePickerService.pickImage(ImageSource.gallery);
+      
+      // Close loading indicator
+      Navigator.of(context).pop();
+      
+      if (pickedImage != null) {
+        setState(() => _imageFile = pickedImage);
+      }
+    } catch (e) {
+      // Close loading indicator if there's an error
+      Navigator.of(context, rootNavigator: true).pop();
+      print('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
     }
   }
-
   Future<void> _createProfile() async {
     if (_usernameController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||

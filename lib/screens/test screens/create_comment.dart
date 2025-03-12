@@ -5,7 +5,7 @@ import 'package:surwa/services/comment_service.dart';
 
 class CommentTestScreen extends StatefulWidget {
   final String postId;
-  const CommentTestScreen({Key? key, required this.postId}) : super(key: key);
+  const CommentTestScreen({super.key, required this.postId});
   @override
   _CommentTestScreenState createState() => _CommentTestScreenState();
 }
