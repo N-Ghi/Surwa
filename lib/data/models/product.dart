@@ -22,7 +22,7 @@ class Product {
     return Product(
       productId: docId,
       ownerId: data['ownerId'],
-      name: data['Name'] ?? '',
+      name: data['name'] ?? '',
       price: data['price'] ?? '',
       category: data['category'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
