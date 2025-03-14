@@ -1,32 +1,51 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:surwa/data/models/cart.dart';
+import 'package:surwa/data/models/message.dart';
 
 class CartService {
   final CollectionReference cartCollection =
       FirebaseFirestore.instance.collection('Cart');
 
   // CREATE: Add a new Cart
-  Future<void> addCart(String buyerId, List<String> orderIds, String totalPrice) {
+  Future<void> addCart(Cart cart) {
     return cartCollection.add({
-      'buyerId': buyerId,
-      'orderIds': orderIds, // List of Order IDs
-      'totalPrice': totalPrice,
+      'buyerId': cart.buyerId,
+      'orderIds': cart.orderIds, // List of Order IDs
+      'totalPrice': cart.totalPrice,
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
 
   // READ: Fetch all Carts
-  Stream<QuerySnapshot> getCarts() {
-    return cartCollection.orderBy('timestamp', descending: true).snapshots();
+  Stream<List<Cart>> getCarts() {
+    return cartCollection.orderBy('timestamp', descending: true).snapshots().map(
+       (QuerySnapshot snapshot){
+       return snapshot.docs.map(
+        (doc){
+          return Cart.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
+        }
+       ).toList();
+      }
+    );
   }
 
   // READ: Get a Cart by ID
-  Future<DocumentSnapshot> getCartById(String cartId) {
-    return cartCollection.doc(cartId).get();
+  Future<Cart> getCartById(String cartId) async{
+    DocumentSnapshot doc = await cartCollection.doc(cartId).get();
+    return Cart.fromFirestore(doc.data() as Map<String,dynamic>, doc.id);
   }
 
   // READ: Get Cart by Buyer ID
-  Stream<QuerySnapshot> getCartByBuyerId(String buyerId) {
-    return cartCollection.where('buyerId', isEqualTo: buyerId).snapshots();
+  Stream<List<Message>> getCartByBuyerId(String buyerId) {
+    return cartCollection.where('buyerId', isEqualTo: buyerId).snapshots().map(
+       (QuerySnapshot snapshot){
+       return snapshot.docs.map(
+        (doc){
+          return Message.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
+        }
+       ).toList();
+      }
+    );
   }
 
   // UPDATE: Update a Cart (e.g., update order list or total price)
