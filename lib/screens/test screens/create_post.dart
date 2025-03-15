@@ -153,7 +153,20 @@ Future<void> _updatePost(Post currentPost) async {
     context: context,
     builder: (dialogContext) {
       return StatefulBuilder(
-        builder: (context, setDialogState) {
+        builder: (context, setDialogState) { // This allows updating UI within the dialog
+          Future<void> _pickImage() async {
+            final picker = ImagePicker();
+            final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+            if (pickedFile != null) {
+              setDialogState(() { // Update state inside the dialog
+                updatedImageFile = File(pickedFile.path);
+              });
+              print("DEBUG: Image selected - ${updatedImageFile!.path}");
+            } else {
+              print("DEBUG: No image selected.");
+            }
+          }
           return AlertDialog(
             title: const Text('Update Post'),
             content: Column(
@@ -168,7 +181,7 @@ Future<void> _updatePost(Post currentPost) async {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: _pickImage,
+                  onPressed: _pickImage, // Uses the modified function
                   child: const Text("Pick Image"),
                 ),
                 if (updatedImageFile != null)
@@ -177,7 +190,7 @@ Future<void> _updatePost(Post currentPost) async {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8.0),
                       child: Image.file(
-                        updatedImageFile,
+                        updatedImageFile!,
                         height: 100,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -193,7 +206,8 @@ Future<void> _updatePost(Post currentPost) async {
               ),
               ElevatedButton(
                 onPressed: () async {
-                  // Prepare updated post data
+                  print("DEBUG: updatedImageFile before update: ${updatedImageFile?.path}");
+
                   Post updatedPost = Post(
                     postID: currentPost.postID,
                     posterID: currentPost.posterID,
@@ -203,20 +217,23 @@ Future<void> _updatePost(Post currentPost) async {
                     timesShared: currentPost.timesShared,
                   );
 
-                  // If a new image file is provided, upload it and update the image URL
                   if (updatedImageFile != null) {
+                    print("DEBUG: New image detected. Uploading...");
                     final imagePickerService = ImagePickerService();
-                    String? imageUrl = await imagePickerService.uploadPostImage(updatedImageFile, '${currentPost.posterID}/${currentPost.postID}');
-                    print("Image URL after upload: $imageUrl");
+                    String? imageUrl = await imagePickerService.uploadPostImage(
+                      updatedImageFile!, '${currentPost.posterID}/${currentPost.postID}'
+                    );
 
+                    print("DEBUG: Image URL after upload: $imageUrl");
                     if (imageUrl != null) {
                       updatedPost.imageUrl = imageUrl;
                     }
-
-                    print("Updated post imageUrl: ${updatedPost.imageUrl}");
+                  } else {
+                    print("DEBUG: No new image provided.");
                   }
 
-                  // Call the update method with the new post data
+                  print("DEBUG: Calling updatePost with: ${updatedPost.toMap()}");
+
                   await _postService.updatePost(updatedPost, updatedImageFile);
 
                   Navigator.pop(context);

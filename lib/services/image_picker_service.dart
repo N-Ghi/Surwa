@@ -32,7 +32,7 @@ class ImagePickerService {
   }
 }
 
-  // Upload image to Supabase Storage and return the public URL
+  // Upload profile image
   Future<String?> uploadProfileImage(File imageFile, String storagePath) async {
   try {
     final fileExt = imageFile.path.split('.').last;
@@ -40,56 +40,56 @@ class ImagePickerService {
     final filePath = '$storagePath/$fileName';
     
     const bucketName = 'profile-images';
-    
     final bytes = await imageFile.readAsBytes();
-    print('Uploading image...');
     await supabase.storage.from(bucketName).uploadBinary(filePath, bytes);
-    print('Image uploaded successfully.');
-    
-    print('Getting public URL...');
     final publicUrl = supabase.storage.from(bucketName).getPublicUrl(filePath);
-    print('Public URL: $publicUrl');
-    
     return publicUrl;
   } catch (e) {
     print('Upload Error: $e');
-    return null;
+    return ("There was an error uploading the image. Please try again.");
   }
   }
 
+  // Upload post image
   Future<String?> uploadPostImage(File imageFile, String storagePath) async {
-  try {
-    // Get file extension
-    final fileExt = imageFile.path.split('.').last;
-    
-    // Create a unique filename
-    final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-    
-    // Construct the full path
-    final filePath = '$storagePath/$fileName';
-    
-    // Your bucket name
-    const bucketName = 'user_uploads';
-    
-    // Read file bytes in a separate isolate to prevent UI freezing
-    final bytes = await compute(_readFileBytes, imageFile.path);
-    
-    print('Uploading image to $bucketName/$filePath...');
-    
-    // Upload the file
-    await supabase.storage.from(bucketName).uploadBinary(filePath, bytes);
-    print('Image uploaded successfully.');
-    
-    // Get the public URL
-    final publicUrl = supabase.storage.from(bucketName).getPublicUrl(filePath);
-    print('Public URL: $publicUrl');
-    
-    return publicUrl;
-  } catch (e) {
-    print('Upload Error: $e');
-    return null;
+    print("uploadPostImage called with path: $storagePath");
+
+    // Debug file existence
+    print("Checking if image file exists: ${imageFile.existsSync()}");
+
+    try {
+      // Get file extension
+      final fileExt = imageFile.path.split('.').last;
+      
+      // Create a unique filename
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      
+      // Construct the full path
+      final filePath = '$storagePath/$fileName';
+
+      // Your bucket name
+      const bucketName = 'user_uploads';
+
+      // Read file bytes in a separate isolate to prevent UI freezing
+      final bytes = await compute(_readFileBytes, imageFile.path);
+
+      print("Uploading image to $bucketName/$filePath...");
+
+      // Upload the file
+      await supabase.storage.from(bucketName).uploadBinary(filePath, bytes);
+      print("Image uploaded successfully.");
+
+      // Get the public URL
+      final publicUrl = supabase.storage.from(bucketName).getPublicUrl(filePath);
+      print("Public URL: $publicUrl");
+
+      return publicUrl;
+    } catch (e) {
+      print("Upload Error: $e");
+      return null;
+    }
   }
-}
+
 
 // Helper function to read file bytes in a separate isolate
 static Future<Uint8List> _readFileBytes(String path) async {

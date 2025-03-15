@@ -18,12 +18,12 @@ class BillService {
   // READ: Fetch all Bills
   Stream<List<Bill>> getBills() {
     return billCollection.orderBy('timestamp', descending: true).snapshots().map(
-       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
+      (QuerySnapshot snapshot){
+      return snapshot.docs.map(
         (doc){
           return Bill.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
         }
-       ).toList();
+      ).toList();
       }
     );
   }
@@ -37,12 +37,12 @@ class BillService {
   // READ: Get Bills by userId
   Stream<List<Bill>> getBillsByUserId(String userId) {
     return billCollection.where('userId', isEqualTo: userId).snapshots().map(
-       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
+      (QuerySnapshot snapshot){
+      return snapshot.docs.map(
         (doc){
           return Bill.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
         }
-       ).toList();
+      ).toList();
       }
     );
   }

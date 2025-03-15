@@ -12,25 +12,14 @@ class PostService {
     try {
       if (imageFile != null) {
         final imagePickerService = ImagePickerService();
-
-        // Upload the image and get the URL
         String? imageUrl = await imagePickerService.uploadPostImage(imageFile, '${post.posterID}/${post.postID}');
-        print("Image URL after upload: $imageUrl");
-
         // Explicitly assign the image URL if it's not null
         if (imageUrl != null) {
           post.imageUrl = imageUrl; // Make sure to assign it
         }
-
-        print("Post imageUrl after assignment: ${post.imageUrl}");
       }
-
-      // Log post details before saving
-      print("Saving post: ${post.toMap()}");
-
       // Save post details in Firestore
       await posts.doc(post.postID).set(post.toMap());
-      print("Post created successfully!");
     } catch (e) {
       print("Error creating post: $e");
     }
@@ -46,9 +35,20 @@ class PostService {
   // Update an existing post
   Future<void> updatePost(Post post, File? imageFile) async {
   try {
+    print("Starting updatePost for postID: ${post.postID}");
+
+    // Debugging imageFile before checking it
+    if (imageFile == null) {
+      print("DEBUG: No image file provided to updatePost, skipping upload.");
+    } else {
+      print("DEBUG: Image file detected in updatePost: ${imageFile.path}");
+    }
+
     // If a new image file is provided, upload it and update the imageUrl
     if (imageFile != null) {
+      print("Image file provided: ${imageFile.path}");
       final imagePickerService = ImagePickerService();
+      print("ImagePickerService instantiated");
 
       // Upload the image and get the URL
       String? imageUrl = await imagePickerService.uploadPostImage(imageFile, '${post.posterID}/${post.postID}');
@@ -57,9 +57,10 @@ class PostService {
       // Explicitly assign the image URL if it's not null
       if (imageUrl != null) {
         post.imageUrl = imageUrl; // Assign the new image URL to the post object
+        print("Post imageUrl after assignment: ${post.imageUrl}");
+      } else {
+        print("DEBUG: Image upload failed, imageUrl is null.");
       }
-
-      print("Post imageUrl after assignment: ${post.imageUrl}");
     }
 
     // Log post details before saving
@@ -72,6 +73,7 @@ class PostService {
     print("Error updating post: $e");
   }
 }
+
 
 
 
