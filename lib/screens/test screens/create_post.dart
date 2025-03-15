@@ -145,189 +145,205 @@ class _PostTestScreenState extends State<PostTestScreen> {
     );
   }
 
-  Future<void> _updatePost(String postID, Post currentPost) async {
-    TextEditingController updatedDescriptionController = TextEditingController(text: currentPost.description);
-    File? updatedImageFile = _imageFile;
+Future<void> _updatePost(Post currentPost) async {
+  TextEditingController updatedDescriptionController = TextEditingController(text: currentPost.description);
+  File? updatedImageFile = _imageFile;
 
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Update Post'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: updatedDescriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Enter updated description',
-                      border: OutlineInputBorder(),
-                    ),
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Update Post'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: updatedDescriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter updated description',
+                    border: OutlineInputBorder(),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _pickImage,
-                    child: const Text("Pick Image"),
-                  ),
-                  if (updatedImageFile != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: Image.file(
-                          updatedImageFile,
-                          height: 100,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _pickImage,
+                  child: const Text("Pick Image"),
+                ),
+                if (updatedImageFile != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8.0),
+                      child: Image.file(
+                        updatedImageFile,
+                        height: 100,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
                       ),
                     ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    Post updatedPost = Post(
-                      postID: postID,
-                      posterID: currentPost.posterID,
-                      description: updatedDescriptionController.text,
-                      dateCreated: currentPost.dateCreated,
-                      imageUrl: currentPost.imageUrl, // Keep the existing URL
-                      timesShared: currentPost.timesShared,
-                    );
-
-                    await _postService.updatePost(postID, updatedPost.toMap(), updatedImageFile);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Post updated successfully!")),
-                    );
-                  },
-                  child: const Text('Update'),
-                ),
+                  ),
               ],
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  // Prepare updated post data
+                  Post updatedPost = Post(
+                    postID: currentPost.postID,
+                    posterID: currentPost.posterID,
+                    description: updatedDescriptionController.text,
+                    dateCreated: currentPost.dateCreated,
+                    imageUrl: currentPost.imageUrl, // Keep existing image URL unless updated
+                    timesShared: currentPost.timesShared,
+                  );
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Post Test Screen')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _createPost,
-        child: const Icon(Icons.add),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            StreamBuilder<List<Post>>(
-              stream: _postService.streamAllPosts(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No posts available'));
-                }
+                  // If a new image file is provided, upload it and update the image URL
+                  if (updatedImageFile != null) {
+                    final imagePickerService = ImagePickerService();
+                    String? imageUrl = await imagePickerService.uploadPostImage(updatedImageFile, '${currentPost.posterID}/${currentPost.postID}');
+                    print("Image URL after upload: $imageUrl");
 
-                List<Post> posts = snapshot.data!;
-                return Expanded(
-                  child: ListView.builder(
-                    itemCount: posts.length,
-                    itemBuilder: (context, index) {
-                      Post post = posts[index];
-                      return Card(
-                        elevation: 3,
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
-                              Image.network(
-                                post.imageUrl!,
-                                width: double.infinity,
-                                height: 200,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                      height: 200,
-                                      width: double.infinity,
-                                      color: Colors.grey[300],
-                                      child: const Icon(Icons.image_not_supported, size: 50),
-                                    ),
-                              ),
-                            Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    post.description,
-                                    style: const TextStyle(fontSize: 16),
+                    if (imageUrl != null) {
+                      updatedPost.imageUrl = imageUrl;
+                    }
+
+                    print("Updated post imageUrl: ${updatedPost.imageUrl}");
+                  }
+
+                  // Call the update method with the new post data
+                  await _postService.updatePost(updatedPost, updatedImageFile);
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Post updated successfully!")),
+                  );
+                },
+                child: const Text('Update'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(title: const Text('Post Test Screen')),
+    floatingActionButton: FloatingActionButton(
+      onPressed: _createPost,
+      child: const Icon(Icons.add),
+    ),
+    body: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          StreamBuilder<List<Post>>(
+            stream: _postService.streamAllPosts(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('No posts available'));
+              }
+
+              List<Post> posts = snapshot.data!;
+              return Expanded(
+                child: ListView.builder(
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    Post post = posts[index];
+                    return Card(
+                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (post.imageUrl != null && post.imageUrl!.isNotEmpty)
+                            Image.network(
+                              post.imageUrl!,
+                              width: double.infinity,
+                              height: 200,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                    height: 200,
+                                    width: double.infinity,
+                                    color: Colors.grey[300],
+                                    child: const Icon(Icons.image_not_supported, size: 50),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Posted: ${post.dateCreated}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
-                            ButtonBar(
-                              alignment: MainAxisAlignment.end,
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () => _deletePost(post.postID),
+                                Text(
+                                  post.description,
+                                  style: const TextStyle(fontSize: 16),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () => _updatePost(post.postID, post),
-                                ),
-                                IconButton(
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => CommentTestScreen(postId: post.postID),
-                                      ),
-                                    );
-                                  },
-                                  icon: const Icon(Icons.comment, color: Colors.green),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Posted: ${post.dateCreated}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+                          ),
+                          OverflowBar(
+                            alignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deletePost(post.postID),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit, color: Colors.blue),
+                                onPressed: () => _updatePost(post),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CommentTestScreen(postId: post.postID),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.comment, color: Colors.green),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   void dispose() {

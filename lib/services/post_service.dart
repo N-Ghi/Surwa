@@ -44,28 +44,36 @@ class PostService {
   }
 
   // Update an existing post
-Future<void> updatePost(String postID, Map<String, dynamic> updatedData, File? imageFile) async {
+  Future<void> updatePost(Post post, File? imageFile) async {
   try {
     // If a new image file is provided, upload it and update the imageUrl
     if (imageFile != null) {
-      final ImagePickerService imagePickerService = ImagePickerService();
-      final String? imageUrl = await imagePickerService.uploadPostImage(imageFile, 'posts');
-      
+      final imagePickerService = ImagePickerService();
+
+      // Upload the image and get the URL
+      String? imageUrl = await imagePickerService.uploadPostImage(imageFile, '${post.posterID}/${post.postID}');
+      print("Image URL after upload: $imageUrl");
+
+      // Explicitly assign the image URL if it's not null
       if (imageUrl != null) {
-        print("Image uploaded successfully");
-        updatedData['imageUrl'] = imageUrl;
-      } else {
-        print("Failed to upload image");
+        post.imageUrl = imageUrl; // Assign the new image URL to the post object
       }
+
+      print("Post imageUrl after assignment: ${post.imageUrl}");
     }
-    
-    // Update the post with the new data
-    await posts.doc(postID).update(updatedData);
+
+    // Log post details before saving
+    print("Updating post with data: ${post.toMap()}");
+
+    // Update the post with the new data in Firestore
+    await posts.doc(post.postID).update(post.toMap());
     print("Post updated successfully!");
   } catch (e) {
     print("Error updating post: $e");
   }
 }
+
+
 
   // Delete an existing post
   Future<void> deletePost(String postID) async {
