@@ -1,63 +1,83 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:surwa/data/models/profile.dart';
+import 'package:surwa/data/notifiers/auth_notifier.dart';
+import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 
 class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Stream to track authentication state
-  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
 
-  /// Sign up with email and password
-  Future<String?> signUpWithEmail(String email, String password) async {
-    try {
-      UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+Future<String?> signUpWithEmail(String email, String password, BuildContext context) async {
+  try {
+    // Create user with email and password
+    UserCredential userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    User? user = userCredential.user;
+    if (user != null) {
+      // Create an empty profile with default values
+      Profile profile = Profile(
+        userId: user.uid,
+        username: "default_username", // Set default or leave empty
+        name: "Default Name", // Set default or leave empty
+        role: "user", // Set default or leave empty
       );
 
-      // Send email verification
-      await userCredential.user?.sendEmailVerification();
+      // Save profile to Firestore
+      await _firestore.collection('profiles').doc(user.uid).set(profile.toMap());
 
-      return null; // Success
-    } on FirebaseAuthException catch (e) {
-      return e.message; // Return error message
+      // Notify the app that profile is complete
+      Provider.of<ProfileCompletionNotifier>(context, listen: false).checkProfileCompletion();
     }
-  }
 
-  /// Check if email is verified
-  Future<bool> isEmailVerified() async {
-    User? user = _firebaseAuth.currentUser;
-    await user?.reload(); // Refresh user data
-    return user?.emailVerified ?? false;
+    return null; // Success
+  } on FirebaseAuthException catch (e) {
+    return e.message; // Return error message
   }
+}
 
-  /// Sign in with email and password (only if email is verified)
-  Future<String?> signInWithEmail(String email, String password) async {
+  Future<String?> signInWithEmail(String email, String password, AuthNotifier authNotifier, BuildContext context) async {
     try {
-      UserCredential userCredential = await _firebaseAuth.signInWithEmailAndPassword(
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       if (!userCredential.user!.emailVerified) {
-        return "Please verify your email before signing in.";
+        return "Please verify your email before logging in.";
       }
 
+      // Check if the user has a profile in Firestore
+      User? user = userCredential.user;
+      if (user != null) {
+        DocumentSnapshot profileSnapshot = await _firestore.collection('profiles').doc(user.uid).get();
+
+        // If profile exists, notify ProfileCompletionNotifier
+        if (profileSnapshot.exists) {
+          // Profile is complete, notify the ProfileCompletionNotifier
+          Provider.of<ProfileCompletionNotifier>(context, listen: false).checkProfileCompletion();
+        } else {
+          // Profile is not complete, handle accordingly
+          Provider.of<ProfileCompletionNotifier>(context, listen: false).checkProfileCompletion();
+        }
+      }
+
+      authNotifier.notifyListeners(); // Notify UI of login state
       return null; // Success
-    } on FirebaseAuthException catch (e) {
-      return e.message; // Return error message
+    } catch (e) {
+      return e.toString(); // Return error message
     }
   }
 
-  /// Send verification email again
-  Future<void> sendEmailVerification() async {
-    User? user = _firebaseAuth.currentUser;
-    if (user != null && !user.emailVerified) {
-      await user.sendEmailVerification();
-    }
-  }
-
-  /// Logout
-  Future<void> signOut() async {
-    await _firebaseAuth.signOut();
+  Future<void> signOut(AuthNotifier authNotifier) async {
+    await _auth.signOut();
+    authNotifier.notifyListeners(); // Notify UI
   }
 }
