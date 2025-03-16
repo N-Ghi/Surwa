@@ -7,6 +7,8 @@ import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 import 'package:surwa/services/auth_service.dart'; // Import AuthService
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }

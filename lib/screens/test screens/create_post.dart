@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart'; // Import AuthNotifier
 
 class ProfileSetupScreen extends StatefulWidget {
+  const ProfileSetupScreen({super.key});
+
   @override
   _ProfileSetupScreenState createState() => _ProfileSetupScreenState();
 }
