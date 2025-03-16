@@ -1,4 +1,5 @@
 class Profile {
+  final String userId; // Firebase-generated user ID
   final String username;
   final String name;
   final String? profilePicture;
@@ -7,6 +8,7 @@ class Profile {
   final List<String> following;
 
   Profile({
+    required this.userId,
     required this.username,
     required this.name,
     this.profilePicture,
@@ -15,9 +17,10 @@ class Profile {
     this.following = const [],
   });
 
-  // Convert a Profile object to a Map
+  // Convert a Profile object to a Map for Firestore
   Map<String, dynamic> toMap() {
     return {
+      'userId': userId,
       'username': username,
       'name': name,
       'profilePicture': profilePicture ?? '',
@@ -30,6 +33,7 @@ class Profile {
   // Create a Profile object from a Firestore document
   factory Profile.fromMap(Map<String, dynamic> map) {
     return Profile(
+      userId: map['userId'] ?? '',
       username: map['username'] ?? '',
       name: map['name'] ?? '',
       profilePicture: map['profilePicture'],

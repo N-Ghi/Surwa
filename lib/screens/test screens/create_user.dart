@@ -54,6 +54,7 @@ class _CreateProfileState extends State<CreateProfile> {
       );
     }
   }
+  
   Future<void> _createProfile() async {
     if (_usernameController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||
@@ -65,6 +66,7 @@ class _CreateProfileState extends State<CreateProfile> {
     }
 
     Profile newProfile = Profile(
+      userId: "", // Will be updated in ProfileService
       username: _usernameController.text.trim(),
       name: _nameController.text.trim(),
       profilePicture: '', // Will be updated in ProfileService
@@ -173,7 +175,9 @@ class _CreateProfileState extends State<CreateProfile> {
               ),
             ),
             StreamBuilder<List<Profile>>(
-              stream: _profileService.streamAllProfiles(),
+                stream: _profileService.streamLoggedInUserProfile()
+                    .where((event) => event is Profile)
+                  .asyncExpand((profile) => Stream.value([profile!])),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -205,7 +209,7 @@ class _CreateProfileState extends State<CreateProfile> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteProfile(profile.username),
+                            onPressed: () => _deleteProfile(),
                           ),
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.blue),
@@ -221,7 +225,7 @@ class _CreateProfileState extends State<CreateProfile> {
             ElevatedButton(
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return  PostTestScreen();
+                  return  ProfileSetupScreen();
                 },));
               },
               child: Text("Add Post"))
@@ -231,8 +235,8 @@ class _CreateProfileState extends State<CreateProfile> {
     );
   }
 
-  Future<void> _deleteProfile(String username) async {
-    await _profileService.deleteProfile(username);
+  Future<void> _deleteProfile() async {
+    await _profileService.deleteProfile();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Profile deleted successfully!")),
     );
@@ -282,10 +286,10 @@ class _CreateProfileState extends State<CreateProfile> {
                 ElevatedButton(
                   onPressed: () async {
                     // Update the profile with name and role fields
-                    await _profileService.updateProfile(profile.username, {
-                      'name': nameController.text,
-                      'role': selectedRole,
-                    });
+                    // await _profileService.updateProfile(profile.username, {
+                    //   'name': nameController.text,
+                    //   'role': selectedRole,
+                    // });
                     
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
