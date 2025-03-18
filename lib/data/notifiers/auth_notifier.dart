@@ -8,6 +8,7 @@ class AuthNotifier extends ChangeNotifier {
   AuthNotifier() {
     _auth.authStateChanges().listen((User? user) {
       _user = user;
+      print('Auth state changed: $user'); // Debug message
       notifyListeners(); // Notify UI of state changes
     });
   }
@@ -17,6 +18,7 @@ class AuthNotifier extends ChangeNotifier {
 
   Future<void> signOut() async {
     await _auth.signOut();
+    print('User signed out'); // Debug message
     notifyListeners();
   }
 }

@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:surwa/data/notifiers/auth_notifier.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 import 'package:surwa/firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -26,6 +27,7 @@ void main() async {
       MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => ProfileCompletionNotifier()),
+          ChangeNotifierProvider(create: (context) => AuthNotifier()),
         ],
         child: MyApp(),
       ),

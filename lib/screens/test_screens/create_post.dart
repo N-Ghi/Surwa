@@ -4,14 +4,14 @@ import 'package:surwa/services/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart'; // Import AuthNotifier
 
-class ProfileSetupScreen extends StatefulWidget {
-  const ProfileSetupScreen({super.key});
+class PostSetup extends StatefulWidget {
+  const PostSetup({Key? key}) : super(key: key);
 
   @override
-  _ProfileSetupScreenState createState() => _ProfileSetupScreenState();
+  _PostSetupState createState() => _PostSetupState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+class _PostSetupState extends State<PostSetup> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _roleController = TextEditingController();
@@ -55,7 +55,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     if (result == null) {
       // If profile creation is successful, navigate to home screen or desired page
+      debugPrint("Profile creation successful");
       Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      debugPrint("Profile creation failed: $result");
     }
   }
 
@@ -63,36 +66,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Complete Your Profile")),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: "Username"),
-            ),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: "Full Name"),
-            ),
-            TextField(
-              controller: _roleController,
-              decoration: InputDecoration(labelText: "Role"),
-            ),
-            SizedBox(height: 20),
-            _isLoading
-                ? CircularProgressIndicator()
-                : ElevatedButton(
-                    onPressed: _createProfile,
-                    child: Text("Create Profile"),
-                  ),
-            if (_errorMessage != null) ...[
-              SizedBox(height: 10),
-              Text(_errorMessage!, style: TextStyle(color: Colors.red)),
-            ],
-          ],
-        ),
-      ),
+      body: Text("Posting Page"),
     );
   }
 }

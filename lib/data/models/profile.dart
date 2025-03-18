@@ -17,6 +17,27 @@ class Profile {
     this.following = const [],
   });
 
+  // Implement copyWith to allow updates
+  Profile copyWith({
+    String? userId,
+    String? username,
+    String? name,
+    String? profilePicture,
+    String? role,
+    List<String>? followers,
+    List<String>? following,
+  }) {
+    return Profile(
+      userId: userId ?? this.userId,
+      username: username ?? this.username,
+      name: name ?? this.name,
+      profilePicture: profilePicture ?? this.profilePicture,
+      role: role ?? this.role,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
+    );
+  }
+
   // Convert a Profile object to a Map for Firestore
   Map<String, dynamic> toMap() {
     return {
@@ -43,3 +64,6 @@ class Profile {
     );
   }
 }
+
+  
+
