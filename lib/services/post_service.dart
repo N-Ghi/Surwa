@@ -9,6 +9,7 @@ import 'package:surwa/services/profile_service.dart';
 class PostService {
 
   final CollectionReference posts = FirebaseFirestore.instance.collection('Post');
+  final CollectionReference comments = FirebaseFirestore.instance.collection('Comment');
   final ImagePickerService imagePickerService = ImagePickerService();
   final ProfileService profile = ProfileService();
   
@@ -19,48 +20,69 @@ class PostService {
   // Create a new post
   Future<void> createPost(Post post, File? imageFile) async {
     try {
+      // Generate a new post ID
+      final String postID = generateRandomId();
+      String? userID = currentUser?.uid;
+      if (userID == null) return;
+      
       String? imageUrl;
 
       // Upload image if available
       if (imageFile != null) {
         final imagePickerService = ImagePickerService();
-        imageUrl = await imagePickerService.uploadPostImage(imageFile, currentUser!.uid);
+        imageUrl = await imagePickerService.uploadPostImage(imageFile, '$userID/$postID');
       }
 
       // Update Post parameters
       Post updatedPost = Post(
-        postID: generateRandomId(),
-        posterID: currentUser!.uid,
+        postID: postID,
+        posterID: userID, 
         description: post.description,
         dateCreated: DateTime.now().toString(),
         imageUrl: imageUrl,
         timesShared: 0,
       );
 
-      // Save post details in Firestore
-      await posts.doc(updatedPost.postID).set(updatedPost.toMap());
+      // Save post details in Firestore with the correct structure
+      await posts.doc(userID).collection(userID).doc(postID).set(updatedPost.toMap());
 
     } catch (e) {
       print("Error creating post: $e");
     }
   }
-
-  // Read all posts
+  // Read all posts except current user's
   Stream<List<Post>> streamAllPostsExceptCurrentUser() {
     String? userID = currentUser?.uid;
     
     return FirebaseFirestore.instance
         .collection('Post')
-        .where('PosterID', isNotEqualTo: userID)
         .snapshots()
-        .map((querySnapshot) {
-          return querySnapshot.docs
-              .map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>))
-              .toList();
+        .asyncMap((snapshot) async {
+          List<Post> allPosts = [];
+          
+          // For each user document
+          for (var userDoc in snapshot.docs) {
+            // Skip current user
+            if (userDoc.id == userID) continue;
+            
+            // Get all posts under this user document
+            var postDocs = await FirebaseFirestore.instance
+                .collection('Post')
+                .doc(userDoc.id)
+                .collection(userDoc.id)
+                .get();
+            
+            // Convert to Post objects and add to list
+            allPosts.addAll(postDocs.docs
+                .map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>))
+                .toList());
+          }
+          
+          return allPosts;
         });
   }
 
-  // Read posts by a specific user
+  // Read posts by current user
   Stream<List<Post>> streamPostsByUser() {
     String? userID = currentUser?.uid;
     if (userID == null) {
@@ -69,7 +91,8 @@ class PostService {
 
     return FirebaseFirestore.instance
         .collection('Post')
-        .where('PosterID', isEqualTo: userID)
+        .doc(userID)
+        .collection(userID)
         .snapshots()
         .map((snapshot) {
           return snapshot.docs
@@ -78,56 +101,30 @@ class PostService {
         });
   }
 
-  // Update an existing post
-  Future<void> updatePost(Post post, File? imageFile) async {
+  // Delete an existing post and its associated comments
+  Future<void> deletePost(String postID) async {
+  String? userID = currentUser?.uid;
+  if (userID == null) return;
+  
   try {
-    print("Starting updatePost for postID: ${post.postID}");
-
-    // Debugging imageFile before checking it
-    if (imageFile == null) {
-      print("DEBUG: No image file provided to updatePost, skipping upload.");
-    } else {
-      print("DEBUG: Image file detected in updatePost: ${imageFile.path}");
+    // First, delete all comments associated with this post
+    final commentsQuery = await comments
+        .where('postID', isEqualTo: postID)
+        .get();
+    
+    // Create a batch to delete all comments in a single operation
+    final batch = FirebaseFirestore.instance.batch();
+    for (var doc in commentsQuery.docs) {
+      batch.delete(doc.reference);
     }
-
-    // If a new image file is provided, upload it and update the imageUrl
-    if (imageFile != null) {
-      print("Image file provided: ${imageFile.path}");
-      final imagePickerService = ImagePickerService();
-      print("ImagePickerService instantiated");
-
-      // Upload the image and get the URL
-      String? imageUrl = await imagePickerService.uploadPostImage(imageFile, '${post.posterID}/${post.postID}');
-      print("Image URL after upload: $imageUrl");
-
-      // Explicitly assign the image URL if it's not null
-      if (imageUrl != null) {
-        post.imageUrl = imageUrl; // Assign the new image URL to the post object
-        print("Post imageUrl after assignment: ${post.imageUrl}");
-      } else {
-        print("DEBUG: Image upload failed, imageUrl is null.");
-      }
-    }
-
-    // Log post details before saving
-    print("Updating post with data: ${post.toMap()}");
-
-    // Update the post with the new data in Firestore
-    await posts.doc(post.postID).update(post.toMap());
-    print("Post updated successfully!");
+    await batch.commit();
+    
+    // Then delete the post itself using the path that matches your structure
+    await posts.doc(userID).collection(userID).doc(postID).delete();
+    print("Post and all associated comments deleted successfully!");
   } catch (e) {
-    print("Error updating post: $e");
+    print("Error deleting post and comments: $e");
   }
 }
 
-  
-  // Delete an existing post
-  Future<void> deletePost(String postID) async {
-    try {
-      await posts.doc(postID).delete();
-      print("Post deleted successfully!");
-    } catch (e) {
-      print("Error deleting post: $e");
-    }
-  }
 }

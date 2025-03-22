@@ -19,7 +19,7 @@ class CommentService {
         message: comment.message,
         timesShared: 0,
       );
-      await comments.doc(updatedComment.commentId).set(updatedComment.toMap());
+      await comments.doc('${userID}/${updatedComment.commentId}').set(updatedComment.toMap());
       print("Comment created successfully!");
     } catch (e) {
       print("Error creating comment: $e");

@@ -177,6 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Comment created successfully!")),
     );
+    Navigator.of(context).pop();
     _clearForm();
   }
   
@@ -259,6 +260,16 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: AppBar(
           title: Text("Home"),
           centerTitle: true,
+          actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return Settings();
+              }));
+            },
+            icon: Icon(Icons.settings),
+          ),
+        ],
         ),
         drawer: drawer(),
         body: Center(
@@ -280,6 +291,16 @@ class _HomeScreenState extends State<HomeScreen> {
         appBar: AppBar(
           title: Text("Home"),
           centerTitle: true,
+          actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return Settings();
+              }));
+            },
+            icon: Icon(Icons.settings),
+          ),
+        ],
         ),
         drawer: drawer(),
         body: Center(
