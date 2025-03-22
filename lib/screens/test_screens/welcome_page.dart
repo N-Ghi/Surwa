@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:surwa/screens/test%20screens/login_page.dart';
-import 'package:surwa/screens/test%20screens/register_page.dart';
+import 'package:surwa/screens/test_screens/login_page.dart';
+import 'package:surwa/screens/test_screens/register_page.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});

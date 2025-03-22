@@ -1,35 +1,81 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
+import 'package:surwa/services/id_randomizer.dart';
 import 'package:surwa/services/image_picker_service.dart';
-import 'package:surwa/data/models/post.dart'; // Import the Post model
+import 'package:surwa/data/models/post.dart';
+import 'package:surwa/services/profile_service.dart';
 
 class PostService {
-  final CollectionReference posts = FirebaseFirestore.instance.collection('Post');
 
+  final CollectionReference posts = FirebaseFirestore.instance.collection('Post');
   final ImagePickerService imagePickerService = ImagePickerService();
+  final ProfileService profile = ProfileService();
+  
+
+  // Get current logged-in user
+  auth.User? get currentUser => auth.FirebaseAuth.instance.currentUser;
+
   // Create a new post
   Future<void> createPost(Post post, File? imageFile) async {
     try {
+      String? imageUrl;
+
+      // Upload image if available
       if (imageFile != null) {
         final imagePickerService = ImagePickerService();
-        String? imageUrl = await imagePickerService.uploadPostImage(imageFile, '${post.posterID}/${post.postID}');
-        // Explicitly assign the image URL if it's not null
-        if (imageUrl != null) {
-          post.imageUrl = imageUrl; // Make sure to assign it
-        }
+        imageUrl = await imagePickerService.uploadPostImage(imageFile, currentUser!.uid);
       }
+
+      // Update Post parameters
+      Post updatedPost = Post(
+        postID: generateRandomId(),
+        posterID: currentUser!.uid,
+        description: post.description,
+        dateCreated: DateTime.now().toString(),
+        imageUrl: imageUrl,
+        timesShared: 0,
+      );
+
       // Save post details in Firestore
-      await posts.doc(post.postID).set(post.toMap());
+      await posts.doc(updatedPost.postID).set(updatedPost.toMap());
+
     } catch (e) {
       print("Error creating post: $e");
     }
   }
 
   // Read all posts
-  Stream<List<Post>> streamAllPosts() {
-    return posts.snapshots().map((querySnapshot) {
-      return querySnapshot.docs.map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>)).toList();
-    });
+  Stream<List<Post>> streamAllPostsExceptCurrentUser() {
+    String? userID = currentUser?.uid;
+    
+    return FirebaseFirestore.instance
+        .collection('Post')
+        .where('PosterID', isNotEqualTo: userID)
+        .snapshots()
+        .map((querySnapshot) {
+          return querySnapshot.docs
+              .map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>))
+              .toList();
+        });
+  }
+
+  // Read posts by a specific user
+  Stream<List<Post>> streamPostsByUser() {
+    String? userID = currentUser?.uid;
+    if (userID == null) {
+      return Stream.value([]);
+    }
+
+    return FirebaseFirestore.instance
+        .collection('Post')
+        .where('PosterID', isEqualTo: userID)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>))
+              .toList();
+        });
   }
 
   // Update an existing post
@@ -74,9 +120,7 @@ class PostService {
   }
 }
 
-
-
-
+  
   // Delete an existing post
   Future<void> deletePost(String postID) async {
     try {
