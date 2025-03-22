@@ -32,17 +32,7 @@ class CommentService {
       return querySnapshot.docs.map((doc) => Comment.fromMap(doc.data() as Map<String, dynamic>)).toList();
     });
   }
-
-  // Update an existing comment
-  Future<void> updateComment(String commentId, Map<String, dynamic> updatedData) async {
-    try {
-      await comments.doc(commentId).update(updatedData);
-      print("Comment updated successfully!");
-    } catch (e) {
-      print("Error updating comment: $e");
-    }
-  }
-
+  
   // Delete an existing comment
   Future<void> deleteComment(String commentId) async {
     try {

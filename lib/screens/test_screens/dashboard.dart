@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _commentController.clear();
   }
   
-  // Add this method to fetch and cache usernames
+  // Fetch and cache usernames
   Future<String> _getUsernameFromId(String userId) async {
     if (_usernameCache.containsKey(userId)) {
       return _usernameCache[userId]!;
@@ -200,7 +200,56 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  
+  // Comment Section
+  Future<void> _commentSection(Post post) async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Comment Section"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StreamBuilder<List<Comment>>(
+                stream: _commentService.streamCommentsByPost(post.postID),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Text("Error loading comments: ${snapshot.error}");
+                  }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Text("Loading comments...");
+                  }
+                  if (snapshot.data == null || snapshot.data!.isEmpty) {
+                    return Text("No comments yet.");
+                  }
+                  return Column(
+                    children: snapshot.data!.map((comment) {
+                      return ListTile(
+                        title: Text(comment.message),
+                        subtitle: FutureBuilder<String>(
+                          future: _getUsernameFromId(comment.commenterId),
+                          builder: (context, snapshot) {
+                            return Text("Comment by: ${snapshot.data ?? 'Loading...'}");
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+              Row(
+                children: [
+                  Text("Add comment"),
+                  SizedBox(width: 10),
+                  IconButton(onPressed: () => commentForm(post), icon: Icon(Icons.comment_sharp))
+                ],
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
 
 
   @override
@@ -323,7 +372,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         IconButton(
                           onPressed: () {
-                            commentForm(post);
+                            _commentSection(post);
                           },
                           icon: Icon(Icons.comment)
                         ),
