@@ -111,6 +111,20 @@
     }
   }
 
+  // Get username from userId
+  Future<String?> getUsernameFromUserId(String userId) async {
+    try {
+      DocumentSnapshot doc = await profileCollection.doc(userId).get();
+      if (doc.exists && doc.data() is Map<String, dynamic>) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        return data['username'] as String?;
+      }
+      return null;
+    } catch (e) {
+      print("Error getting username from userId: $e");
+      return null;
+    }
+  }
   // Get the logged-in user's profile
   Future<Profile?> getLoggedInUserProfile() async {
     try {

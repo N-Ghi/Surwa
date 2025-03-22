@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:surwa/data/models/comment.dart'; // Import the Comment model
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:surwa/data/models/comment.dart';
+import 'package:surwa/services/id_randomizer.dart'; // Import the Comment model
 
 class CommentService {
   final CollectionReference comments = FirebaseFirestore.instance.collection('Comment');
@@ -7,7 +9,17 @@ class CommentService {
   // Create a new comment
   Future<void> createComment(Comment comment) async {
     try {
-      await comments.doc(comment.commentId).set(comment.toMap());
+      String userID = FirebaseAuth.instance.currentUser!.uid;
+
+      // Update comment parameters
+      Comment updatedComment = Comment(
+        commentId: generateRandomId(),
+        postId: comment.postId,
+        commenterId: userID,
+        message: comment.message,
+        timesShared: 0,
+      );
+      await comments.doc(updatedComment.commentId).set(updatedComment.toMap());
       print("Comment created successfully!");
     } catch (e) {
       print("Error creating comment: $e");

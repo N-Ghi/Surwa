@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:surwa/data/models/comment.dart';
 import 'package:surwa/data/models/post.dart';
 import 'package:surwa/screens/test_screens/create_post.dart';
 import 'package:surwa/screens/test_screens/profile.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
+import 'package:surwa/screens/test_screens/settings.dart';
 import 'package:surwa/screens/test_screens/welcome_page.dart';
+import 'package:surwa/services/comment_service.dart';
 import 'package:surwa/services/post_service.dart';
+import 'package:surwa/services/profile_service.dart';
 
 class HomeScreen extends StatefulWidget {
 
@@ -15,8 +19,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PostService _postService = PostService();
+  final ProfileService _profileService = ProfileService();
+  final CommentService _commentService = CommentService();
+  TextEditingController _commentController = TextEditingController();
   List<Post> _allPosts = [];
   bool _isLoading = true;
+  Map<String, String> _usernameCache = {};
 
   void initState() {
     super.initState();
@@ -112,6 +120,89 @@ class _HomeScreenState extends State<HomeScreen> {
       );
   }
   
+  Future<void> commentForm(Post post) async {
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Comment on post"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min, // Make the dialog smaller
+            children: [
+              TextField(
+                controller: _commentController,
+                decoration: InputDecoration(hintText: "Add comment"),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _addComment(post.postID);
+                Navigator.of(context).pop();
+              },
+              child: Text("Comment"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Future<void> _addComment(String postId) async {
+    if (_commentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please add comment")),
+      );
+      return;
+    }
+
+    Comment comment = Comment(
+      commentId: "", // Will be updated in CommentService
+      postId: postId, // Use the parameter passed to this method
+      commenterId: "", // Will be updated in CommentService
+      message: _commentController.text.trim(),
+      timesShared: 0,
+    );
+
+    // Pass the comment to the comment service
+    await _commentService.createComment(comment);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Comment created successfully!")),
+    );
+    _clearForm();
+  }
+  
+  void _clearForm() {
+    _commentController.clear();
+  }
+  
+  // Add this method to fetch and cache usernames
+  Future<String> _getUsernameFromId(String userId) async {
+    if (_usernameCache.containsKey(userId)) {
+      return _usernameCache[userId]!;
+    }
+    
+    try {
+      final username = await _profileService.getUsernameFromUserId(userId);
+      _usernameCache[userId] = username!;
+      return username;
+    } catch (e) {
+      print("Error fetching username: $e");
+      return "Unknown user";
+    }
+  }
+
+  
+
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -159,6 +250,16 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text("Home"),
         centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return Settings();
+              }));
+            },
+            icon: Icon(Icons.settings),
+          ),
+        ],
       ),
       drawer: drawer(),
       // View posts by creators
@@ -176,28 +277,61 @@ class _HomeScreenState extends State<HomeScreen> {
                     post.imageUrl!,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / 
+                                loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: double.infinity,
+                        height: 200,
+                        color: Colors.grey[300],
+                        child: Center(
+                          child: Icon(Icons.error, color: Colors.red),
+                        ),
+                      );
+                    },
                   ),
                 Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text(post.description),
+                  child: Column(
+                    children: [
+                      Text(post.description),
+                      SizedBox(height: 10),
+                      FutureBuilder<String>(
+                        future: _getUsernameFromId(post.posterID),
+                        builder: (context, snapshot) {
+                          return Text("Posted by: ${snapshot.data ?? 'Loading...'}");
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IconButton(
-                      onPressed: () {}, 
-                      icon: Icon(Icons.comment)
-                    ),
-                    SizedBox(width: 5),
-                    Text("${post.timesShared} "),
-                    IconButton(
-                      onPressed: () {}, 
-                      icon: Icon(Icons.share),
-                      tooltip: "Share Post",
-                    ),
-                    
-                  ],
-                ),
+                StreamBuilder<List<Comment>>(
+                  stream: _commentService.streamCommentsByPost(post.postID),
+                  builder: (context, snapshot) {
+                    int commentCount = snapshot.data?.length ?? 0;
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            commentForm(post);
+                          },
+                          icon: Icon(Icons.comment)
+                        ),
+                        Text("$commentCount"),
+                      ],
+                    );
+                  },
+                )
               ],
             ),
           );

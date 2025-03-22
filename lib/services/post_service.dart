@@ -37,9 +37,6 @@ class PostService {
         timesShared: 0,
       );
 
-
-      
-
       // Save post details in Firestore
       await posts.doc(updatedPost.postID).set(updatedPost.toMap());
 

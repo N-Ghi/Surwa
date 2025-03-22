@@ -17,10 +17,6 @@ class Settings extends StatelessWidget {
           // mainAxisAlignment: MainAxisAlignment.start,
           // crossAxisAlignment: CrossAxisAlignment.center,
           children:<Widget>[
-            Text(
-                'Settings of Flutter Mapp',
-                style: TextStyle(fontSize: 24),
-              ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -38,40 +34,6 @@ class Settings extends StatelessWidget {
                     },)
                 ),
               ],
-            ),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    duration: Duration(seconds: 5),
-                    content: Text("SnackBar"),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              child: Text("Open SnackBar"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: Text("Alert Title"),
-                        content: Text("Alert Content"),
-                        actions: [
-                          FilledButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              child: Text("Close"),
-                          ),
-                        ],
-                      );
-                    },
-                );
-              },
-              child: Text("Open Dialog"),
             ),
           ],
       )
