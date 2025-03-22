@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
-import 'package:surwa/screens/test_screens/dashboard.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
-import 'package:surwa/services/auth_service.dart'; // Import AuthService
+import 'package:surwa/screens/test_screens/dashboard.dart';
+import 'package:surwa/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key); // Fix the key parameter
+  const LoginScreen({super.key}); // Fix the key parameter
 
   @override
   _LoginScreenState createState() => _LoginScreenState();

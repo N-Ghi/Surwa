@@ -1,106 +1,207 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:surwa/services/profile_service.dart';
-import 'package:surwa/data/models/profile.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:surwa/data/models/post.dart';
+import 'package:surwa/screens/test_screens/create_post.dart';
+import 'package:surwa/screens/test_screens/profile.dart';
+import 'package:surwa/data/notifiers/auth_notifier.dart';
+import 'package:surwa/screens/test_screens/welcome_page.dart';
+import 'package:surwa/services/post_service.dart';
 
 class HomeScreen extends StatefulWidget {
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final ProfileService _profileService = ProfileService();
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  File? _selectedImage;
-  Profile? _existingProfile;
+  final PostService _postService = PostService();
+  List<Post> _allPosts = [];
+  bool _isLoading = true;
 
-  @override
   void initState() {
     super.initState();
-    _loadExistingProfile();
+    _loadAllPosts();
   }
-
-  // Method to load the existing profile if available
-  Future<void> _loadExistingProfile() async {
-    _existingProfile = await _profileService.getLoggedInUserProfile();
-    if (_existingProfile != null) {
-      _usernameController.text = _existingProfile!.username;
-      _nameController.text = _existingProfile!.name;
-    }
-    setState(() {});
-  }
-
-  // Method to update the profile
-  Future<void> _updateProfile() async {
-    final profile = _existingProfile!.copyWith(
-      name: _nameController.text,
-      username: _usernameController.text,
-    );
-
-    String? result = await _profileService.updateProfile(
-      name: profile.name,
-      username: profile.username,
-      newProfileImage: _selectedImage,
-    );
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(result ?? 'Profile updated successfully!')));
-  }
-
-  // Method to delete the profile
-  Future<void> _deleteProfile() async {
-    await _profileService.deleteProfile();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile deleted successfully')));
-  }
-
-  // Method to pick an image from the gallery
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+  
+  void _loadAllPosts() {
+    try {
+      print("Starting to load user posts");
+      _postService.streamAllPostsExceptCurrentUser().listen(
+        (posts) {
+          print("Received posts: ${posts?.length ?? 0}");
+          setState(() {
+            _allPosts = posts ?? [];
+            _isLoading = false;
+          });
+        },
+        onError: (error) {
+          print("Error loading posts: $error");
+          setState(() {
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error loading posts: $error")),
+          );
+        },
+      );
+    } catch (e) {
+      print("Exception in _loadAllPosts: $e");
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _isLoading = false;
       });
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_existingProfile == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text('Dashboard')),
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return Scaffold(
-      appBar: AppBar(title: Text('Dashboard')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+  Widget drawer() {
+    return Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
-            ),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(labelText: 'Name'),
-            ),
-            ElevatedButton(
-              onPressed: _pickImage,
-              child: Text('Pick Profile Picture'),
-            ),
-            if (_existingProfile != null)
-              ElevatedButton(
-                onPressed: _updateProfile,
-                child: Text('Update Profile'),
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
               ),
-            ElevatedButton(
-              onPressed: _deleteProfile,
-              child: Text('Delete Profile'),
+              child: Text(
+                'Menu',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.home),
+              title: Text('Home'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text('Profile'),
+              onTap: () {
+                // Navigate to settings page
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return ProfileScreen();
+                }));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.add_a_photo),
+              title: Text('Posts'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return PostSetup();
+                }));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text('Logout'),
+              onTap: () {
+                // Logout user
+                AuthNotifier authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+                authNotifier.signOut();
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
+                  return WelcomePage();
+                }));
+              },
             ),
           ],
         ),
+      );
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text("Home"),
+          centerTitle: true,
+        ),
+        drawer: drawer(),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 10),
+              Text("Loading posts..."),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    // Check if posts exist
+    if (_allPosts.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text("Home"),
+          centerTitle: true,
+        ),
+        drawer: drawer(),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.no_photography_outlined, size: 100),
+              Text("No creator has made a post yet."),
+              Text("Be the first to create a post!"),
+            ],
+          ),
+        ),
+      );
+    }
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Home"),
+        centerTitle: true,
+      ),
+      drawer: drawer(),
+      // View posts by creators
+      body: ListView.builder(
+        itemCount: _allPosts.length,
+        itemBuilder: (context, index) {
+          final post = _allPosts[index];
+          return Card(
+            margin: EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (post.imageUrl != null)
+                  Image.network(
+                    post.imageUrl!,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(post.description),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      onPressed: () {}, 
+                      icon: Icon(Icons.comment)
+                    ),
+                    SizedBox(width: 5),
+                    Text("${post.timesShared} "),
+                    IconButton(
+                      onPressed: () {}, 
+                      icon: Icon(Icons.share),
+                      tooltip: "Share Post",
+                    ),
+                    
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

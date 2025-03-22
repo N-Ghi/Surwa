@@ -7,6 +7,8 @@ import 'package:surwa/screens/test_screens/dashboard.dart';
 import 'package:surwa/screens/test_screens/welcome_page.dart';
 
 class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;

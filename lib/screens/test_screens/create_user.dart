@@ -5,6 +5,8 @@ import 'package:surwa/services/profile_service.dart';
 import 'package:surwa/data/models/profile.dart';
 
 class ProfileTestScreen extends StatefulWidget {
+  const ProfileTestScreen({super.key});
+
   @override
   _ProfileTestScreenState createState() => _ProfileTestScreenState();
 }

@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:surwa/data/models/profile.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 
