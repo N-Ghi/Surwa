@@ -1,16 +1,18 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Comment {
   final String commentId;
   final String postId;
   final String commenterId;
   final String message;
-  final int timesShared;
+  final Timestamp timeStamp;
 
   Comment({
     required this.commentId,
     required this.postId,
     required this.commenterId,
     required this.message,
-    required this.timesShared,
+    required this.timeStamp,
   });
 
   // Convert Comment object to a Map for Firestore
@@ -20,7 +22,7 @@ class Comment {
       'PostID': postId,
       'CommenterID': commenterId,
       'Message': message,
-      'TimesShared': timesShared,
+      'TimeStamp': timeStamp,
     };
   }
 
@@ -31,7 +33,7 @@ class Comment {
       postId: map['PostID'] ?? '',
       commenterId: map['CommenterID'] ?? '',
       message: map['Message'] ?? '',
-      timesShared: map['TimesShared'] ?? 0,
+      timeStamp: map['TimeStamp'] ?? Timestamp.now(),
     );
   }
 }

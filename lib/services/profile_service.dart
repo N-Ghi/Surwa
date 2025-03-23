@@ -125,6 +125,7 @@
       return null;
     }
   }
+  
   // Get the logged-in user's profile
   Future<Profile?> getLoggedInUserProfile() async {
     try {
@@ -368,4 +369,5 @@
       return null;
     }
   }
+  
   }
