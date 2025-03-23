@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:surwa/data/models/comment.dart';
 import 'package:surwa/data/models/post.dart';
+import 'package:surwa/data/models/profile.dart';
 import 'package:surwa/screens/test_screens/create_post.dart';
 import 'package:surwa/screens/test_screens/profile.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
@@ -10,6 +12,7 @@ import 'package:surwa/screens/test_screens/welcome_page.dart';
 import 'package:surwa/services/comment_service.dart';
 import 'package:surwa/services/post_service.dart';
 import 'package:surwa/services/profile_service.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class HomeScreen extends StatefulWidget {
 
@@ -31,7 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadAllPosts();
   }
   
-  void _loadAllPosts() {
+  void _loadAllPosts() async{
     try {
       print("Starting to load user posts");
       _postService.streamAllPostsExceptCurrentUser().listen(
@@ -120,41 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
       );
   }
   
-  Future<void> commentForm(Post post) async {
-    return showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Comment on post"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min, // Make the dialog smaller
-            children: [
-              TextField(
-                controller: _commentController,
-                decoration: InputDecoration(hintText: "Add comment"),
-              ),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _addComment(post.postID);
-                Navigator.of(context).pop();
-              },
-              child: Text("Comment"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-  
   Future<void> _addComment(String postId) async {
     if (_commentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -168,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
       postId: postId, // Use the parameter passed to this method
       commenterId: "", // Will be updated in CommentService
       message: _commentController.text.trim(),
-      timesShared: 0,
+      timeStamp: Timestamp.fromDate(DateTime.now()), // Will be updated in CommentService
     );
 
     // Pass the comment to the comment service
@@ -203,53 +171,138 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Comment Section
   Future<void> _commentSection(Post post) async {
-    return showDialog(
+    return showModalBottomSheet(
       context: context,
+      isScrollControlled: true, // Makes it full-screen
+      backgroundColor: Colors.black, // TikTok-style dark mode
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
-        return AlertDialog(
-          title: Text("Comment Section"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.75, // Takes 75% of screen height
+          padding: EdgeInsets.only(top: 10),
+          child: Column(
             children: [
-              StreamBuilder<List<Comment>>(
-                stream: _commentService.streamCommentsByPost(post.postID),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Text("Error loading comments: ${snapshot.error}");
-                  }
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Text("Loading comments...");
-                  }
-                  if (snapshot.data == null || snapshot.data!.isEmpty) {
-                    return Text("No comments yet.");
-                  }
-                  return Column(
-                    children: snapshot.data!.map((comment) {
-                      return ListTile(
-                        title: Text(comment.message),
-                        subtitle: FutureBuilder<String>(
-                          future: _getUsernameFromId(comment.commenterId),
-                          builder: (context, snapshot) {
-                            return Text("Comment by: ${snapshot.data ?? 'Loading...'}");
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
+              // Title Bar
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Comments", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
               ),
-              Row(
-                children: [
-                  Text("Add comment"),
-                  SizedBox(width: 10),
-                  IconButton(onPressed: () => commentForm(post), icon: Icon(Icons.comment_sharp))
-                ],
-              )
+
+              // Comment List
+              Expanded(
+                child: StreamBuilder<List<Comment>>(
+                  stream: _commentService.streamCommentsByPost(post.postID),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(child: Text("Error loading comments", style: TextStyle(color: Colors.white)));
+                    }
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.data == null || snapshot.data!.isEmpty) {
+                      return Center(child: Text("No comments yet.", style: TextStyle(color: Colors.white70)));
+                    }
+
+                    return ListView.builder(
+                      itemCount: snapshot.data!.length,
+                      itemBuilder: (context, index) {
+                        final comment = snapshot.data![index];
+
+                        return FutureBuilder<String?>(
+                          future: _profileService.getUsernameFromUserId(comment.commenterId),
+                          builder: (context, usernameSnapshot) {
+                            if (!usernameSnapshot.hasData) return SizedBox.shrink();
+                            String username = usernameSnapshot.data ?? "Unknown";
+
+                            return FutureBuilder<Profile?>(
+                              future: _profileService.getProfileByUsername(username),
+                              builder: (context, profileSnapshot) {
+                                String? profilePicUrl = profileSnapshot.data?.profilePicture;
+
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: Colors.grey.shade800,
+                                    backgroundImage: profilePicUrl != null
+                                        ? NetworkImage(profilePicUrl)
+                                        : null,
+                                    child: profilePicUrl == null ? Icon(Icons.person, color: Colors.white) : null,
+                                  ),
+                                  title: RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(color: Colors.white),
+                                      children: [
+                                        TextSpan(text: "$username ", style: TextStyle(fontWeight: FontWeight.bold)),
+                                        TextSpan(text: comment.message),
+                                      ],
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    timeAgo(comment.timeStamp),
+                                    style: TextStyle(color: Colors.white60, fontSize: 12),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              
+              // Comment Input Field
+              Padding(
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom), // Prevents keyboard overlap
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    border: Border(top: BorderSide(color: Colors.white24)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _commentController,
+                          style: TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: "Add a comment...",
+                            hintStyle: TextStyle(color: Colors.white54),
+                            border: InputBorder.none,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.send, color: Colors.blueAccent),
+                        onPressed: () => _addComment(post.postID),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         );
       },
     );
+  }
+
+  // Time Ago
+  String timeAgo(Timestamp timestamp) {
+    final DateTime date = timestamp.toDate();
+    return timeago.format(date, locale: 'en');
   }
 
 
@@ -264,7 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return Settings();
+                return SettingsPage();
               }));
             },
             icon: Icon(Icons.settings),
@@ -295,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return Settings();
+                return SettingsPage();
               }));
             },
             icon: Icon(Icons.settings),
@@ -324,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return Settings();
+                return SettingsPage();
               }));
             },
             icon: Icon(Icons.settings),
@@ -409,4 +462,5 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 }

@@ -26,64 +26,87 @@ class PostService {
       if (userID == null) return;
       
       String? imageUrl;
-
+      
       // Upload image if available
       if (imageFile != null) {
         final imagePickerService = ImagePickerService();
         imageUrl = await imagePickerService.uploadPostImage(imageFile, '$userID/$postID');
       }
-
+      
       // Update Post parameters
       Post updatedPost = Post(
         postID: postID,
-        posterID: userID, 
+        posterID: userID,
         description: post.description,
-        dateCreated: DateTime.now().toString(),
+        dateCreated: Timestamp.fromDate(DateTime.now()),
         imageUrl: imageUrl,
-        timesShared: 0,
       );
-
-      // Save post details in Firestore with the correct structure
-      await posts.doc(userID).collection(userID).doc(postID).set(updatedPost.toMap());
-
+      
+      // Create a batch to ensure both operations succeed or fail together
+      WriteBatch batch = FirebaseFirestore.instance.batch();
+      
+      // 1. Create/update the parent document
+      DocumentReference userDocRef = FirebaseFirestore.instance.collection('Post').doc(userID);
+      batch.set(userDocRef, {
+        'userID': userID,
+        'lastUpdated': Timestamp.now()
+      }, SetOptions(merge: true));
+      
+      // 2. Create the actual post in the subcollection
+      DocumentReference postDocRef = userDocRef.collection('posts').doc(postID);
+      batch.set(postDocRef, updatedPost.toMap());
+      
+      // Commit the batch
+      await batch.commit();
+      
+      print("Post created successfully with ID: $postID");
+      print("Post data: ${updatedPost.toMap()}");
+      
     } catch (e) {
       print("Error creating post: $e");
     }
   }
-  // Read all posts except current user's
+  
+  // Get all posts except those by the current user
   Stream<List<Post>> streamAllPostsExceptCurrentUser() {
     String? userID = currentUser?.uid;
     
-    return FirebaseFirestore.instance
-        .collection('Post')
-        .snapshots()
-        .asyncMap((snapshot) async {
-          List<Post> allPosts = [];
+    return FirebaseFirestore.instance.collection('Post').snapshots().asyncMap(
+      (snapshot) async {
+        List<Post> allPosts = [];
+        
+        print('Fetched ${snapshot.docs.length} users');
+        
+        for (var userDoc in snapshot.docs) {
+          print('Checking user: ${userDoc.id}');
           
-          // For each user document
-          for (var userDoc in snapshot.docs) {
-            // Skip current user
-            if (userDoc.id == userID) continue;
-            
-            // Get all posts under this user document
-            var postDocs = await FirebaseFirestore.instance
-                .collection('Post')
-                .doc(userDoc.id)
-                .collection(userDoc.id)
-                .get();
-            
-            // Convert to Post objects and add to list
-            allPosts.addAll(postDocs.docs
-                .map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>))
-                .toList());
+          if (userDoc.id == userID) {
+            print('Skipping current user: $userID');
+            continue;
           }
           
-          return allPosts;
-        });
+          // Use correct capitalization here - "DateCreated" not "dateCreated"
+          var postDocs = await FirebaseFirestore.instance
+              .collection('Post')
+              .doc(userDoc.id)
+              .collection('posts')
+              .orderBy('DateCreated', descending: true)  // Capitalized field name
+              .get();
+          
+          print('User ${userDoc.id} has ${postDocs.docs.length} posts');
+          
+          allPosts.addAll(postDocs.docs.map((doc) => Post.fromMap(doc.data())).toList());
+        }
+        
+        print('Total posts retrieved: ${allPosts.length}');
+        return allPosts;
+      },
+    );
   }
-
+  
   // Read posts by current user
   Stream<List<Post>> streamPostsByUser() {
+
     String? userID = currentUser?.uid;
     if (userID == null) {
       return Stream.value([]);
@@ -92,7 +115,7 @@ class PostService {
     return FirebaseFirestore.instance
         .collection('Post')
         .doc(userID)
-        .collection(userID)
+        .collection('posts') // Updated to 'posts'
         .snapshots()
         .map((snapshot) {
           return snapshot.docs
@@ -103,28 +126,35 @@ class PostService {
 
   // Delete an existing post and its associated comments
   Future<void> deletePost(String postID) async {
-  String? userID = currentUser?.uid;
-  if (userID == null) return;
-  
-  try {
-    // First, delete all comments associated with this post
-    final commentsQuery = await comments
-        .where('postID', isEqualTo: postID)
-        .get();
+    String? userID = currentUser?.uid;
+    if (userID == null) return;
     
-    // Create a batch to delete all comments in a single operation
-    final batch = FirebaseFirestore.instance.batch();
-    for (var doc in commentsQuery.docs) {
-      batch.delete(doc.reference);
+    try {
+      // First, delete all comments associated with this post
+      final commentsQuery = await comments
+          .where('postID', isEqualTo: postID)
+          .get();
+      
+      // Create a batch to delete all comments in a single operation
+      final batch = FirebaseFirestore.instance.batch();
+      for (var doc in commentsQuery.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      
+      // Then delete the post itself using the correct path
+      await FirebaseFirestore.instance
+          .collection('Post')
+          .doc(userID)
+          .collection('posts') // Updated to 'posts'
+          .doc(postID)
+          .delete();
+
+      print("Post and all associated comments deleted successfully!");
+    } catch (e) {
+      print("Error deleting post and comments: $e");
     }
-    await batch.commit();
-    
-    // Then delete the post itself using the path that matches your structure
-    await posts.doc(userID).collection(userID).doc(postID).delete();
-    print("Post and all associated comments deleted successfully!");
-  } catch (e) {
-    print("Error deleting post and comments: $e");
   }
-}
+
 
 }

@@ -15,7 +15,6 @@ class _CommentTestScreenState extends State<CommentTestScreen> {
   final TextEditingController _postIdController = TextEditingController();
   final TextEditingController _commenterIdController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
-  final TextEditingController _timesSharedController = TextEditingController();
   String? selectedCommentId;
 
   @override
@@ -34,11 +33,6 @@ class _CommentTestScreenState extends State<CommentTestScreen> {
               controller: _messageController,
               decoration: InputDecoration(labelText: "Message"),
             ),
-            TextField(
-              controller: _timesSharedController,
-              decoration: InputDecoration(labelText: "Times Shared"),
-              keyboardType: TextInputType.number,
-            ),
             SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
@@ -49,7 +43,7 @@ class _CommentTestScreenState extends State<CommentTestScreen> {
                 postId: widget.postId,
                 commenterId: _commenterIdController.text,
                 message: _messageController.text,
-                timesShared: int.tryParse(_timesSharedController.text) ?? 0,
+                timeStamp: Timestamp.fromDate(DateTime.now()),
               );
               // Use the createComment method with the Comment object
               _commentService.createComment(newComment);
@@ -76,7 +70,6 @@ class _CommentTestScreenState extends State<CommentTestScreen> {
                 final comment = comments[index];
                 return ListTile(
                   title: Text(comment.message),
-                  subtitle: Text("Shared: ${comment.timesShared} times"),
                   trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -86,7 +79,6 @@ class _CommentTestScreenState extends State<CommentTestScreen> {
                       setState(() {
                       selectedCommentId = comment.commentId;
                       _messageController.text = comment.message;
-                      _timesSharedController.text = comment.timesShared.toString();
                       });
                       print("Editing comment: $comment");
                     },

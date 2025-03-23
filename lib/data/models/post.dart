@@ -1,10 +1,12 @@
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class Post {
   final String postID;
   final String posterID;
   final String description;
-  final String dateCreated;
+  final Timestamp dateCreated;
   String? imageUrl;
-  final int timesShared;
 
   Post({
     required this.postID,
@@ -12,7 +14,6 @@ class Post {
     required this.description,
     required this.dateCreated,
     this.imageUrl,
-    required this.timesShared,
   });
 
   // Convert Post object to a Map for Firestore
@@ -23,7 +24,6 @@ class Post {
       'Description': description,
       'DateCreated': dateCreated,
       'ImageUrl': imageUrl,
-      'TimesShared': timesShared,
     };
   }
 
@@ -35,7 +35,6 @@ class Post {
       description: map['Description'] ?? '',
       dateCreated: map['DateCreated'] ?? '',
       imageUrl: map['ImageUrl'],
-      timesShared: map['TimesShared'] ?? 0,
     );
   }
 }
