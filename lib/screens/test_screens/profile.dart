@@ -2,12 +2,14 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
+import 'package:surwa/screens/test_screens/login_page.dart';
 import 'package:surwa/services/profile_service.dart';
 import 'package:surwa/data/models/profile.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? username; // Optional username parameter to view other profiles
+  const ProfileScreen({this.username, super.key});
 
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
@@ -21,47 +23,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _currentPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
   File? _selectedImage;
-  Profile? _existingProfile;
+  Profile? _profile;
   User? _currentUser;
-
+  bool _isLoading = true;
+  bool _isCurrentUserProfile = true;
+  bool _isFollowing = false;
+  int _postCount = 0;
+  List<Profile> _followers = [];
+  List<Profile> _following = [];
+  
   @override
   void initState() {
     super.initState();
     _currentUser = FirebaseAuth.instance.currentUser;
-    _loadExistingProfile();
+    _loadProfile();
   }
 
-  Future<void> _loadExistingProfile() async {
-    _existingProfile = await _profileService.getLoggedInUserProfile();
-    if (_existingProfile != null) {
-      _usernameController.text = _existingProfile!.username;
-      _nameController.text = _existingProfile!.name;
-      _emailController.text = _currentUser!.email ?? '';
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      if (widget.username != null) {
+        // Loading someone else's profile
+        _profile = await _profileService.getProfileByUsername(widget.username!);
+        _isCurrentUserProfile = false;
+        
+        if (_profile != null && _currentUser != null) {
+          // Check if current user is following this profile
+          _isFollowing = await _profileService.isFollowingUser(_profile!.userId);
+        }
+      } else {
+        // Loading current user's profile
+        _profile = await _profileService.getLoggedInUserProfile();
+        _isCurrentUserProfile = true;
+      }
+
+      if (_profile != null) {
+        _usernameController.text = _profile!.username;
+        _nameController.text = _profile!.name;        
+        if (_isCurrentUserProfile && _currentUser != null) {
+          _emailController.text = _currentUser!.email ?? '';
+        }
+        
+        // Load followers and following
+        _followers = await _profileService.getFollowers(_profile!.userId);
+        _following = await _profileService.getFollowing(_profile!.userId);
+      }
+    } catch (e) {
+      print("Error loading profile: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading profile')),
+      );
     }
+
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleFollow() async {
+    if (_profile == null || _currentUser == null) return;
+    
+    bool success;
+    if (_isFollowing) {
+      success = await _profileService.unfollowUser(_profile!.userId);
+      if (success) {
+        setState(() {
+          _isFollowing = false;
+          _followers.removeWhere((follower) => follower.userId == _currentUser!.uid);
+        });
+      }
+    } else {
+      success = await _profileService.followUser(_profile!.userId);
+      if (success) {
+        setState(() {
+          _isFollowing = true;
+          // Add current user to followers list
+          // In a real app, you'd fetch the current user's profile
+          _profileService.getLoggedInUserProfile().then((currentUserProfile) {
+            if (currentUserProfile != null && mounted) {
+              setState(() {
+                _followers.add(currentUserProfile);
+              });
+            }
+          });
+        });
+      }
+    }
+    
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to ${_isFollowing ? 'unfollow' : 'follow'} user')),
+      );
     }
   }
 
   Future<void> _updateProfileForm() async {
-    if (!mounted) return;
+    if (!mounted || !_isCurrentUserProfile) return;
 
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: Text('Update Profile'),
+          title: Text('Edit Profile'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(labelText: 'Username'),
-                ),
-                TextField(
                   controller: _nameController,
                   decoration: InputDecoration(labelText: 'Name'),
+                ),
+                TextField(
+                  controller: _usernameController,
+                  decoration: InputDecoration(labelText: 'Username'),
                 ),
                 TextField(
                   controller: _emailController,
@@ -78,9 +157,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   decoration: InputDecoration(labelText: 'New Password'),
                   obscureText: true,
                 ),
+                SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _pickImage,
-                  child: Text('Profile Picture'),
+                  child: Text('Change Profile Photo'),
                 ),
               ],
             ),
@@ -94,28 +174,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () async {
                 if (!mounted) return;
 
-                final profile = _existingProfile!.copyWith(
-                  name: _nameController.text,
-                  username: _usernameController.text,
-                );
+                Navigator.pop(dialogContext);
+                setState(() {
+                  _isLoading = true;
+                });
 
                 String? result = await _profileService.updateProfile(
-                  name: profile.name,
-                  username: profile.username,
+                  name: _nameController.text.isNotEmpty ? _nameController.text : null,
+                  username: _usernameController.text.isNotEmpty ? _usernameController.text : null,
                   email: _emailController.text.isNotEmpty ? _emailController.text : null,
                   newPassword: _newPasswordController.text.isNotEmpty ? _newPasswordController.text : null,
                   newProfileImage: _selectedImage,
                   currentPassword: _currentPasswordController.text,
                 );
 
+                // Clear password fields for security
+                _currentPasswordController.clear();
+                _newPasswordController.clear();
+
                 if (mounted) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                  
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(result ?? 'Profile updated successfully!')),
                   );
-                  Navigator.pop(dialogContext);
+                  
+                  // Reload profile to show updated info
+                  _loadProfile();
                 }
               },
-              child: Text('Update'),
+              child: Text('Save'),
             ),
           ],
         );
@@ -124,8 +214,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _deleteProfile() async {
-    await _profileService.deleteProfile();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile deleted successfully')));
+    if (!_isCurrentUserProfile) return;
+    
+    // Confirmation dialog before deletion
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Delete Account'),
+          content: Text('Are you sure you want to delete your account? This action cannot be undone.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+                setState(() {
+                  _isLoading = true;
+                });
+                
+                String? result = await _profileService.deleteProfile();
+                
+                if (mounted) {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                  
+                  if (result == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Profile deleted successfully')),
+                    );
+                    // Navigate to login or home screen
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(result)),
+                    );
+                  }
+                }
+              },
+              child: Text('Delete', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showFollowersList() {
+    _showUserListBottomSheet('Followers', _followers);
+  }
+
+  void _showFollowingList() {
+    _showUserListBottomSheet('Following', _following);
+  }
+
+  void _showUserListBottomSheet(String title, List<Profile> users) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) {
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Divider(),
+              Expanded(
+                child: users.isEmpty
+                    ? Center(child: Text('No $title yet'))
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: users.length,
+                        itemBuilder: (context, index) {
+                          final user = users[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: user.profilePicture != null && user.profilePicture!.isNotEmpty
+                                  ? NetworkImage(user.profilePicture!)
+                                  : null,
+                              child: user.profilePicture == null || user.profilePicture!.isEmpty
+                                  ? Icon(Icons.person)
+                                  : null,
+                            ),
+                            title: Text(user.username),
+                            subtitle: Text(user.name),
+                            onTap: () {
+                              Navigator.pop(context);
+                              if (user.userId != _currentUser?.uid) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProfileScreen(username: user.username),
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -141,7 +351,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_existingProfile == null) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(_isCurrentUserProfile ? 'Profile' : widget.username ?? ''),
+          centerTitle: true,
+        ),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_profile == null) {
       return Scaffold(
         appBar: AppBar(title: Text('Profile'), centerTitle: true),
         body: Center(
@@ -151,61 +371,265 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Icon(Icons.error, size: 50),
               SizedBox(height: 10),
               Text('No profile found!'),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfileTestScreen()));
-                },
-                child: Icon(Icons.add),
-              ),
+              if (_isCurrentUserProfile)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfileTestScreen()));
+                  },
+                  child: Icon(Icons.add),
+                ),
             ],
           ),
         ),
       );
     }
 
+    // Instagram-style profile screen
     return Scaffold(
-      appBar: AppBar(title: Text('Profile'), centerTitle: true),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundImage: _selectedImage != null
-                  ? FileImage(_selectedImage!)
-                  : _existingProfile!.profilePicture != null
-                      ? NetworkImage(_existingProfile!.profilePicture!)
-                      : null,
-              child: _selectedImage == null && _existingProfile!.profilePicture == null
-                  ? Icon(Icons.person, size: 50)
-                  : null,
+      appBar: AppBar(
+        title: Text(_profile!.username, style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: widget.username != null ? BackButton() : null,
+        actions: [
+          if (_isCurrentUserProfile)
+            IconButton(
+              icon: Icon(Icons.menu),
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (context) => Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.settings),
+                        title: Text('Settings'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _updateProfileForm();
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.delete, color: Colors.red),
+                        title: Text('Delete Account', style: TextStyle(color: Colors.red)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _deleteProfile();
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
-            Divider(),
-            Text('Username: ${_existingProfile!.username}'),
-            SizedBox(height: 8),
-            Text('Name: ${_existingProfile!.name}'),
-            SizedBox(height: 8),
-            Text('Email: ${_currentUser!.email ?? "Not provided"}'),
-            SizedBox(height: 8),
-            Text('Role: ${_existingProfile!.role}'),
-            Divider(),
-            Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _updateProfileForm,
-                  child: Text('Update Profile'),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadProfile,
+        child: SingleChildScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    // Profile Image
+                    GestureDetector(
+                      onTap: _isCurrentUserProfile ? _pickImage : null,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 40,
+                            backgroundImage: _selectedImage != null
+                                ? FileImage(_selectedImage!)
+                                : _profile!.profilePicture != null && _profile!.profilePicture!.isNotEmpty
+                                    ? NetworkImage(_profile!.profilePicture!)
+                                    : null,
+                            child: (_selectedImage == null && 
+                                    (_profile!.profilePicture == null || _profile!.profilePicture!.isEmpty))
+                                ? Icon(Icons.person, size: 40)
+                                : null,
+                          ),
+                          if (_isCurrentUserProfile)
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: EdgeInsets.all(4),
+                                child: Icon(Icons.add_a_photo, size: 16, color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 24),
+                    // Stats (Posts, Followers, Following)
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildStatColumn(_postCount, 'Posts'),
+                          GestureDetector(
+                            onTap: _showFollowersList,
+                            child: _buildStatColumn(_followers.length, 'Followers'),
+                          ),
+                          GestureDetector(
+                            onTap: _showFollowingList,
+                            child: _buildStatColumn(_following.length, 'Following'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _deleteProfile,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: Text('Delete Profile'),
+              ),
+              // Name and Bio
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _profile!.name,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 16),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+              // Edit Profile or Follow Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _isCurrentUserProfile
+                    ? OutlinedButton(
+                        onPressed: _updateProfileForm,
+                        child: Text('Edit Profile'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: Size(double.infinity, 36),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      )
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _toggleFollow,
+                              child: Text(_isFollowing ? 'Following' : 'Follow'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: Size(0, 36),
+                                backgroundColor: _isFollowing ? Colors.grey.shade200 : Theme.of(context).primaryColor,
+                                foregroundColor: _isFollowing ? Colors.black : Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          OutlinedButton(
+                            onPressed: () {
+                              // Implement message functionality
+                            },
+                            child: Text('Message'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: Size(0, 36),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+              SizedBox(height: 16),
+              // Post Grid Header
+              Container(
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: IconButton(
+                        icon: Icon(Icons.grid_on),
+                        onPressed: () {},
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    Expanded(
+                      child: IconButton(
+                        icon: Icon(Icons.person_pin_outlined),
+                        onPressed: () {},
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Post Grid (placeholder for now, would be populated from a PostService)
+              _postCount > 0 
+                  ? GridView.builder(
+                      physics: NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 1,
+                        mainAxisSpacing: 1,
+                      ),
+                      itemCount: _postCount,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          color: Colors.grey.shade300,
+                          child: Center(child: Icon(Icons.image)),
+                        );
+                      },
+                    )
+                  : Container(
+                      height: 200,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.photo_library, size: 80, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text('No Posts Yet', style: TextStyle(color: Colors.grey.shade600)),
+                          ],
+                        ),
+                      ),
+                    ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatColumn(int count, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          count.toString(),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey,
+          ),
+        ),
+      ],
     );
   }
 }

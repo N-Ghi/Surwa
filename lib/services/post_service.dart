@@ -124,6 +124,25 @@ class PostService {
         });
   }
 
+  // Stream posts by a specific user
+  Stream<List<Post>> streamPostsByUserId(String userId) {
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+
+    return FirebaseFirestore.instance
+        .collection('Post')
+        .doc(userId)
+        .collection('posts')
+        .orderBy('DateCreated', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>))
+              .toList();
+        });
+  }
+  
   // Delete an existing post and its associated comments
   Future<void> deletePost(String postID) async {
     String? userID = currentUser?.uid;
