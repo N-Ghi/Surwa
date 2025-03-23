@@ -355,19 +355,113 @@
   // Get a user profile by username
   Future<Profile?> getProfileByUsername(String username) async {
     try {
-      QuerySnapshot query = await profileCollection
+      QuerySnapshot query = await userMapCollection
           .where('username', isEqualTo: username)
           .limit(1)
           .get();
       
       if (query.docs.isNotEmpty) {
-        return Profile.fromMap(query.docs.first.data() as Map<String, dynamic>);
+        String userId = query.docs.first['userId'] as String;
+        DocumentSnapshot doc = await profileCollection.doc(userId).get();
+        
+        if (doc.exists) {
+          return Profile.fromMap(doc.data() as Map<String, dynamic>);
+        }
       }
       return null;
     } catch (e) {
-      print("Error retrieving profile by username: $e");
+      print("Error getting profile by username: $e");
       return null;
     }
   }
-  
+
+
+  // Search for users by username prefix
+  Future<List<Profile>> searchUsersByUsername(String searchQuery, {int limit = 20}) async {
+    try {
+      if (searchQuery.isEmpty) {
+        return [];
+      }
+      
+      // Query Firestore for usernames containing the search string
+      final querySnapshot = await profileCollection
+          .where('username', isGreaterThanOrEqualTo: searchQuery)
+          .where('username', isLessThanOrEqualTo: searchQuery + '\uf8ff') // Unicode character for range queries
+          .limit(limit)
+          .get();
+
+      // Convert documents to Profile objects
+      return querySnapshot.docs
+          .map((doc) => Profile.fromMap(doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print("Error searching users: $e");
+      return [];
+    }
   }
+
+  // Get multiple profiles by usernames (batch fetch)
+  Future<List<Profile>> getProfilesByUsernames(List<String> usernames) async {
+    try {
+      if (usernames.isEmpty) {
+        return [];
+      }
+      
+      List<Profile> profiles = [];
+      
+      // Firebase limitations prevent using 'whereIn' with large arrays,
+      // so we'll use batched queries
+      for (int i = 0; i < usernames.length; i += 10) {
+        int end = (i + 10 < usernames.length) ? i + 10 : usernames.length;
+        List<String> batch = usernames.sublist(i, end);
+        
+        QuerySnapshot querySnapshot = await profileCollection
+            .where('username', whereIn: batch)
+            .get();
+        
+        profiles.addAll(querySnapshot.docs
+            .map((doc) => Profile.fromMap(doc.data() as Map<String, dynamic>))
+            .toList());
+      }
+      
+      return profiles;
+    } catch (e) {
+      print("Error getting profiles by usernames: $e");
+      return [];
+    }
+  }
+
+  // Check if a user can view another user's profile (for privacy settings)
+  Future<bool> canViewProfile(String targetUserId) async {
+    try {
+      // If the user is viewing their own profile, always allow
+      if (currentUser?.uid == targetUserId) {
+        return true;
+      }
+      
+      // Get the target user's profile to check privacy settings
+      DocumentSnapshot doc = await profileCollection.doc(targetUserId).get();
+      
+      if (!doc.exists) {
+        return false; // Profile doesn't exist
+      }
+      
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      
+      // Check for privacy settings (if implemented)
+      // This is just an example - modify based on your privacy model
+      bool isPrivate = data['isPrivate'] ?? false;
+      
+      if (!isPrivate) {
+        return true; // Public profile can be viewed by anyone
+      }
+      
+      // For private profiles, check if the current user is a follower
+      List<dynamic> followers = data['followers'] ?? [];
+      return followers.contains(currentUser?.uid);
+    } catch (e) {
+      print("Error checking profile visibility: $e");
+      return false;
+    }
+  }
+}

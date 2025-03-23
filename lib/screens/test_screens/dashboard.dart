@@ -7,6 +7,7 @@ import 'package:surwa/data/models/profile.dart';
 import 'package:surwa/screens/test_screens/create_post.dart';
 import 'package:surwa/screens/test_screens/profile.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
+import 'package:surwa/screens/test_screens/search_page.dart';
 import 'package:surwa/screens/test_screens/settings.dart';
 import 'package:surwa/screens/test_screens/welcome_page.dart';
 import 'package:surwa/services/comment_service.dart';
@@ -115,6 +116,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 authNotifier.signOut();
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
                   return WelcomePage();
+                }));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.search),
+              title: Text('Search'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return SearchPage();
                 }));
               },
             ),
