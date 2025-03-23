@@ -124,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
               title: Text('Search'),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return SearchPage();
+                  return UserSearchScreen();
                 }));
               },
             ),

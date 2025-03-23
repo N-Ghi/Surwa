@@ -355,26 +355,47 @@
   // Get a user profile by username
   Future<Profile?> getProfileByUsername(String username) async {
     try {
-      QuerySnapshot query = await userMapCollection
+      print("Searching for profile with username: $username");
+      
+      // First, try the direct query on Profile collection
+      QuerySnapshot profileQuery = await profileCollection
           .where('username', isEqualTo: username)
           .limit(1)
           .get();
       
-      if (query.docs.isNotEmpty) {
-        String userId = query.docs.first['userId'] as String;
-        DocumentSnapshot doc = await profileCollection.doc(userId).get();
-        
-        if (doc.exists) {
-          return Profile.fromMap(doc.data() as Map<String, dynamic>);
-        }
+      if (profileQuery.docs.isNotEmpty) {
+        print("Found profile directly in Profile collection");
+        return Profile.fromMap(profileQuery.docs.first.data() as Map<String, dynamic>);
       }
-      return null;
+      
+      // If not found directly, try through UserMap collection
+      QuerySnapshot userMapQuery = await userMapCollection
+          .where(FieldPath.documentId, isEqualTo: username)
+          .limit(1)
+          .get();
+      
+      if (userMapQuery.docs.isEmpty) {
+        print("Username not found in UserMap collection");
+        return null;
+      }
+      
+      String userId = userMapQuery.docs.first['userId'] as String;
+      print("Found userId: $userId for username: $username");
+      
+      DocumentSnapshot profileDoc = await profileCollection.doc(userId).get();
+      
+      if (!profileDoc.exists) {
+        print("Profile document doesn't exist for userId: $userId");
+        return null;
+      }
+      
+      print("Successfully retrieved profile for username: $username");
+      return Profile.fromMap(profileDoc.data() as Map<String, dynamic>);
     } catch (e) {
       print("Error getting profile by username: $e");
       return null;
     }
   }
-
 
   // Search for users by username prefix
   Future<List<Profile>> searchUsersByUsername(String searchQuery, {int limit = 20}) async {
@@ -462,6 +483,212 @@
     } catch (e) {
       print("Error checking profile visibility: $e");
       return false;
+    }
+  }
+
+  // Follow a user
+  Future<bool> followUser(String targetUserId) async {
+    try {
+      if (currentUser == null) {
+        return false;
+      }
+
+      final String currentUserId = currentUser!.uid;
+      
+      // Cannot follow yourself
+      if (currentUserId == targetUserId) {
+        return false;
+      }
+      
+      // Use a transaction to ensure consistency
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        // Get both user profiles
+        final currentUserDoc = profileCollection.doc(currentUserId);
+        final targetUserDoc = profileCollection.doc(targetUserId);
+        
+        final currentUserSnapshot = await transaction.get(currentUserDoc);
+        final targetUserSnapshot = await transaction.get(targetUserDoc);
+        
+        if (!currentUserSnapshot.exists || !targetUserSnapshot.exists) {
+          throw Exception('One or both profiles do not exist');
+        }
+        
+        // Update following list of current user
+        Map<String, dynamic> currentUserData = currentUserSnapshot.data() as Map<String, dynamic>;
+        List<String> following = List<String>.from(currentUserData['following'] ?? []);
+        
+        if (!following.contains(targetUserId)) {
+          following.add(targetUserId);
+          transaction.update(currentUserDoc, {'following': following});
+        }
+        
+        // Update followers list of target user
+        Map<String, dynamic> targetUserData = targetUserSnapshot.data() as Map<String, dynamic>;
+        List<String> followers = List<String>.from(targetUserData['followers'] ?? []);
+        
+        if (!followers.contains(currentUserId)) {
+          followers.add(currentUserId);
+          transaction.update(targetUserDoc, {'followers': followers});
+        }
+      });
+      
+      return true;
+    } catch (e) {
+      print("Error following user: $e");
+      return false;
+    }
+  }
+
+  // Unfollow a user
+  Future<bool> unfollowUser(String targetUserId) async {
+    try {
+      if (currentUser == null) {
+        return false;
+      }
+
+      final String currentUserId = currentUser!.uid;
+      
+      // Cannot unfollow yourself
+      if (currentUserId == targetUserId) {
+        return false;
+      }
+      
+      // Use a transaction to ensure consistency
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        // Get both user profiles
+        final currentUserDoc = profileCollection.doc(currentUserId);
+        final targetUserDoc = profileCollection.doc(targetUserId);
+        
+        final currentUserSnapshot = await transaction.get(currentUserDoc);
+        final targetUserSnapshot = await transaction.get(targetUserDoc);
+        
+        if (!currentUserSnapshot.exists || !targetUserSnapshot.exists) {
+          throw Exception('One or both profiles do not exist');
+        }
+        
+        // Remove from following list of current user
+        Map<String, dynamic> currentUserData = currentUserSnapshot.data() as Map<String, dynamic>;
+        List<String> following = List<String>.from(currentUserData['following'] ?? []);
+        
+        if (following.contains(targetUserId)) {
+          following.remove(targetUserId);
+          transaction.update(currentUserDoc, {'following': following});
+        }
+        
+        // Remove from followers list of target user
+        Map<String, dynamic> targetUserData = targetUserSnapshot.data() as Map<String, dynamic>;
+        List<String> followers = List<String>.from(targetUserData['followers'] ?? []);
+        
+        if (followers.contains(currentUserId)) {
+          followers.remove(currentUserId);
+          transaction.update(targetUserDoc, {'followers': followers});
+        }
+      });
+      
+      return true;
+    } catch (e) {
+      print("Error unfollowing user: $e");
+      return false;
+    }
+  }
+
+  // Check if current user is following a specific user
+  Future<bool> isFollowingUser(String targetUserId) async {
+    try {
+      if (currentUser == null) {
+        return false;
+      }
+
+      DocumentSnapshot doc = await profileCollection.doc(currentUser!.uid).get();
+      if (!doc.exists) {
+        return false;
+      }
+      
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      List<String> following = List<String>.from(data['following'] ?? []);
+      
+      return following.contains(targetUserId);
+    } catch (e) {
+      print("Error checking follow status: $e");
+      return false;
+    }
+  }
+
+  // Get followers list as Profile objects
+  Future<List<Profile>> getFollowers(String userId) async {
+    try {
+      DocumentSnapshot doc = await profileCollection.doc(userId).get();
+      if (!doc.exists) {
+        return [];
+      }
+      
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      List<String> followerIds = List<String>.from(data['followers'] ?? []);
+      
+      if (followerIds.isEmpty) {
+        return [];
+      }
+      
+      List<Profile> followers = [];
+      
+      // Firebase limitations prevent using 'whereIn' with large arrays,
+      // so we'll use batched queries
+      for (int i = 0; i < followerIds.length; i += 10) {
+        int end = (i + 10 < followerIds.length) ? i + 10 : followerIds.length;
+        List<String> batch = followerIds.sublist(i, end);
+        
+        QuerySnapshot querySnapshot = await profileCollection
+            .where('userId', whereIn: batch)
+            .get();
+        
+        followers.addAll(querySnapshot.docs
+            .map((doc) => Profile.fromMap(doc.data() as Map<String, dynamic>))
+            .toList());
+      }
+      
+      return followers;
+    } catch (e) {
+      print("Error getting followers: $e");
+      return [];
+    }
+  }
+
+  // Get following list as Profile objects
+  Future<List<Profile>> getFollowing(String userId) async {
+    try {
+      DocumentSnapshot doc = await profileCollection.doc(userId).get();
+      if (!doc.exists) {
+        return [];
+      }
+      
+      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+      List<String> followingIds = List<String>.from(data['following'] ?? []);
+      
+      if (followingIds.isEmpty) {
+        return [];
+      }
+      
+      List<Profile> following = [];
+      
+      // Firebase limitations prevent using 'whereIn' with large arrays,
+      // so we'll use batched queries
+      for (int i = 0; i < followingIds.length; i += 10) {
+        int end = (i + 10 < followingIds.length) ? i + 10 : followingIds.length;
+        List<String> batch = followingIds.sublist(i, end);
+        
+        QuerySnapshot querySnapshot = await profileCollection
+            .where('userId', whereIn: batch)
+            .get();
+        
+        following.addAll(querySnapshot.docs
+            .map((doc) => Profile.fromMap(doc.data() as Map<String, dynamic>))
+            .toList());
+      }
+      
+      return following;
+    } catch (e) {
+      print("Error getting following: $e");
+      return [];
     }
   }
 }

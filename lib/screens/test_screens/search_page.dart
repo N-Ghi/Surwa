@@ -1,17 +1,17 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:surwa/data/models/profile.dart';
 import 'package:surwa/services/profile_service.dart';
 
-class SearchPage extends StatefulWidget {
-  const SearchPage({Key? key}) : super(key: key);
+class UserSearchScreen extends StatefulWidget {
+  const UserSearchScreen({Key? key}) : super(key: key);
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  _UserSearchScreenState createState() => _UserSearchScreenState();
 }
 
-class _SearchPageState extends State<SearchPage> {
+class _UserSearchScreenState extends State<UserSearchScreen> {
   final ProfileService _profileService = ProfileService();
   final TextEditingController _searchController = TextEditingController();
   List<Profile> _searchResults = [];
@@ -38,17 +38,8 @@ class _SearchPageState extends State<SearchPage> {
     });
 
     try {
-      // Query Firestore for usernames containing the search string
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('Profile')
-          .where('username', isGreaterThanOrEqualTo: query)
-          .where('username', isLessThanOrEqualTo: query + '\uf8ff') // Unicode character for range queries
-          .limit(20) // Limit to prevent excessive data fetching
-          .get();
-
-      final profiles = querySnapshot.docs
-          .map((doc) => Profile.fromMap(doc.data() as Map<String, dynamic>))
-          .toList();
+      // Use the service method to search users
+      final profiles = await _profileService.searchUsersByUsername(query);
 
       setState(() {
         _searchResults = profiles;
@@ -59,6 +50,11 @@ class _SearchPageState extends State<SearchPage> {
       setState(() {
         _isSearching = false;
       });
+      
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error searching for users'))
+      );
     }
   }
 
@@ -126,11 +122,11 @@ class _SearchPageState extends State<SearchPage> {
                     title: Text(profile.username),
                     subtitle: Text(profile.name),
                     onTap: () {
-                      // Navigate to user profile screen
+                      // Pass the entire profile object instead of just the username
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(username: profile.username),
+                          builder: (context) => UserProfileScreen(profile: profile),
                         ),
                       );
                     },
@@ -144,11 +140,11 @@ class _SearchPageState extends State<SearchPage> {
   }
 }
 
-// Screen to view another user's profile
+// Modified to accept a Profile object instead of just username
 class UserProfileScreen extends StatefulWidget {
-  final String username;
+  final Profile profile;
 
-  const UserProfileScreen({Key? key, required this.username}) : super(key: key);
+  const UserProfileScreen({Key? key, required this.profile}) : super(key: key);
 
   @override
   _UserProfileScreenState createState() => _UserProfileScreenState();
@@ -156,51 +152,27 @@ class UserProfileScreen extends StatefulWidget {
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final ProfileService _profileService = ProfileService();
-  Profile? _profile;
-  bool _isLoading = true;
+  late Profile _profile;
+  bool _isLoading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadUserProfile();
-  }
-
-  Future<void> _loadUserProfile() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-
-      final profile = await _profileService.getProfileByUsername(widget.username);
-      
-      if (profile == null) {
-        setState(() {
-          _error = 'User not found';
-          _isLoading = false;
-        });
-        return;
-      }
-
-      setState(() {
-        _profile = profile;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = 'Error loading profile: $e';
-        _isLoading = false;
-      });
-    }
+    // We already have the profile, so no need to load it again
+    _profile = widget.profile;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.username),
+        title: Text(widget.profile.username),
+        centerTitle: true,
         elevation: 0,
+        actions: [
+          IconButton(onPressed: () => _refreshProfile(), icon: Icon(Icons.refresh), tooltip: 'Refresh',),
+        ],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -221,10 +193,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: _profile!.profilePicture != null && _profile!.profilePicture!.isNotEmpty
-                      ? NetworkImage(_profile!.profilePicture!)
+                  backgroundImage: _profile.profilePicture != null && _profile.profilePicture!.isNotEmpty
+                      ? NetworkImage(_profile.profilePicture!)
                       : null,
-                  child: _profile!.profilePicture == null || _profile!.profilePicture!.isEmpty
+                  child: _profile.profilePicture == null || _profile.profilePicture!.isEmpty
                       ? Icon(Icons.person, size: 40)
                       : null,
                 ),
@@ -233,15 +205,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_profile!.name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text(_profile.name, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                       SizedBox(height: 4),
-                      Text('@${_profile!.username}', style: TextStyle(color: Colors.grey)),
+                      Text('@${_profile.username}', style: TextStyle(color: Colors.grey)),
                       SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildStatColumn(_profile!.followers.length.toString(), 'Followers'),
-                          _buildStatColumn(_profile!.following.length.toString(), 'Following'),
+                          _buildStatColumn(_profile.followers?.length.toString() ?? '0', 'Followers'),
+                          _buildStatColumn(_profile.following?.length.toString() ?? '0', 'Following'),
                         ],
                       ),
                     ],
@@ -252,12 +224,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ),
           Divider(),
           // Additional profile information can be displayed here
-          // For example, posts, bio, etc.
           Center(
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Text(
-                "This is ${_profile!.username}'s profile",
+                "This is ${_profile.username}'s profile",
                 style: TextStyle(fontSize: 16),
               ),
             ),
@@ -265,6 +236,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ],
       ),
     );
+  }
+
+  // Method to refresh the profile data
+  Future<void> _refreshProfile() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      final updatedProfile = await _profileService.getProfileByUsername(_profile.username);
+      
+      if (updatedProfile == null) {
+        setState(() {
+          _error = 'Failed to refresh profile';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _profile = updatedProfile;
+        _isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Profile refreshed'))
+      );
+    } catch (e) {
+      setState(() {
+        _error = 'Error refreshing profile: $e';
+        _isLoading = false;
+      });
+    }
   }
 
   Widget _buildStatColumn(String count, String label) {
