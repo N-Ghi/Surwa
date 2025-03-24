@@ -16,6 +16,8 @@ import 'package:surwa/services/profile_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -25,11 +27,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final PostService _postService = PostService();
   final ProfileService _profileService = ProfileService();
   final CommentService _commentService = CommentService();
-  TextEditingController _commentController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
   List<Post> _allPosts = [];
   bool _isLoading = true;
-  Map<String, String> _usernameCache = {};
+  final Map<String, String> _usernameCache = {};
 
+  @override
   void initState() {
     super.initState();
     _loadAllPosts();
@@ -40,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print("Starting to load user posts");
       _postService.streamAllPostsExceptCurrentUser().listen(
         (posts) {
-          print("Received posts: ${posts?.length ?? 0}");
+          print("Received posts: ${posts.length ?? 0}");
           setState(() {
             _allPosts = posts ?? [];
             _isLoading = false;

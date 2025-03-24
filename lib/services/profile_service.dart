@@ -397,6 +397,16 @@
     }
   }
 
+  // Stream a user profile by userId
+  Stream<Profile?> streamProfileByUserId(String userId) {
+    return profileCollection.doc(userId).snapshots().map((doc) {
+      if (doc.exists) {
+        return Profile.fromMap(doc.data() as Map<String, dynamic>);
+      }
+      return null;
+    });
+  }
+
   // Search for users by username prefix
   Future<List<Profile>> searchUsersByUsername(String searchQuery, {int limit = 20}) async {
     try {
@@ -407,7 +417,7 @@
       // Query Firestore for usernames containing the search string
       final querySnapshot = await profileCollection
           .where('username', isGreaterThanOrEqualTo: searchQuery)
-          .where('username', isLessThanOrEqualTo: searchQuery + '\uf8ff') // Unicode character for range queries
+          .where('username', isLessThanOrEqualTo: '$searchQuery\uf8ff') // Unicode character for range queries
           .limit(limit)
           .get();
 

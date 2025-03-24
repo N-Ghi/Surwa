@@ -7,7 +7,7 @@ import 'package:surwa/services/profile_service.dart';
 import 'package:intl/intl.dart';
 
 class UserSearchScreen extends StatefulWidget {
-  const UserSearchScreen({Key? key}) : super(key: key);
+  const UserSearchScreen({super.key});
 
   @override
   _UserSearchScreenState createState() => _UserSearchScreenState();
@@ -146,7 +146,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 class UserProfileScreen extends StatefulWidget {
   final Profile profile;
 
-  const UserProfileScreen({Key? key, required this.profile}) : super(key: key);
+  const UserProfileScreen({super.key, required this.profile});
 
   @override
   _UserProfileScreenState createState() => _UserProfileScreenState();
@@ -188,9 +188,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (_isCurrentUser) return;
 
     final currentUserProfile = await _profileService.getLoggedInUserProfile();
-    if (currentUserProfile != null && currentUserProfile.following != null) {
+    if (currentUserProfile != null) {
       setState(() {
-        _isFollowing = currentUserProfile.following!.contains(_profile.userId);
+        _isFollowing = currentUserProfile.following.contains(_profile.userId);
       });
     }
   }
@@ -471,8 +471,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildStatColumn((_profile.followers?.length ?? 0).toString(), 'Followers'),
-                        _buildStatColumn((_profile.following?.length ?? 0).toString(), 'Following'),
+                        _buildStatColumn((_profile.followers.length ?? 0).toString(), 'Followers'),
+                        _buildStatColumn((_profile.following.length ?? 0).toString(), 'Following'),
                         _buildStatColumn(_userPosts.length.toString(), 'Posts'),
                       ],
                     ),

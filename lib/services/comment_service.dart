@@ -43,7 +43,7 @@ class CommentService {
         .snapshots()
         .map((querySnapshot) {
           return querySnapshot.docs
-              .map((doc) => Comment.fromMap(doc.data() as Map<String, dynamic>))
+              .map((doc) => Comment.fromMap(doc.data()))
               .toList();
         });
   }

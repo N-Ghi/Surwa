@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
 import 'package:surwa/screens/test_screens/login_page.dart';
 import 'package:surwa/services/profile_service.dart';
+import 'package:surwa/services/post_service.dart';
 import 'package:surwa/data/models/profile.dart';
+import 'package:surwa/data/models/post.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileService _profileService = ProfileService();
+  final PostService _postService = PostService();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -28,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   bool _isCurrentUserProfile = true;
   bool _isFollowing = false;
+  List<Post> _userPosts = [];
   int _postCount = 0;
   List<Profile> _followers = [];
   List<Profile> _following = [];
@@ -53,11 +57,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (_profile != null && _currentUser != null) {
           // Check if current user is following this profile
           _isFollowing = await _profileService.isFollowingUser(_profile!.userId);
+          
+          // Load other user's posts
+          _loadOtherUserPosts(_profile!.userId);
         }
       } else {
         // Loading current user's profile
         _profile = await _profileService.getLoggedInUserProfile();
         _isCurrentUserProfile = true;
+        
+        // Load current user's posts
+        _loadCurrentUserPosts();
       }
 
       if (_profile != null) {
@@ -83,6 +93,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+  
+  void _loadCurrentUserPosts() {
+    _postService.streamPostsByUser().listen((posts) {
+      if (mounted) {
+        setState(() {
+          _userPosts = posts;
+          _postCount = posts.length;
+        });
+      }
+    });
+  }
+  
+  void _loadOtherUserPosts(String userId) {
+    _postService.streamPostsByUserId(userId).listen((posts) {
+      if (mounted) {
+        setState(() {
+          _userPosts = posts;
+          _postCount = posts.length;
+        });
+      }
+    });
   }
 
   Future<void> _toggleFollow() async {
@@ -348,6 +380,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     }
   }
+  
+  void _navigateToPostDetail(Post post) {
+    // Implementation for navigating to post detail view
+    // You can create a PostDetailScreen and navigate to it
+    print("Navigate to post detail for post: ${post.postID}");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -423,7 +461,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _loadProfile,
+        onRefresh: () async {
+          await _loadProfile();
+          if (_isCurrentUserProfile) {
+            _loadCurrentUserPosts();
+          } else if (_profile != null) {
+            _loadOtherUserPosts(_profile!.userId);
+          }
+        },
         child: SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(),
           child: Column(
@@ -472,7 +517,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildStatColumn(_postCount, 'Posts'),
+                          _buildStatColumn(_userPosts.length, 'Posts'),
                           GestureDetector(
                             onTap: _showFollowersList,
                             child: _buildStatColumn(_followers.length, 'Followers'),
@@ -507,20 +552,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: _isCurrentUserProfile
                     ? OutlinedButton(
                         onPressed: _updateProfileForm,
-                        child: Text('Edit Profile'),
                         style: OutlinedButton.styleFrom(
                           minimumSize: Size(double.infinity, 36),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
+                        child: Text('Edit Profile'),
                       )
                     : Row(
                         children: [
                           Expanded(
                             child: ElevatedButton(
                               onPressed: _toggleFollow,
-                              child: Text(_isFollowing ? 'Following' : 'Follow'),
                               style: ElevatedButton.styleFrom(
                                 minimumSize: Size(0, 36),
                                 backgroundColor: _isFollowing ? Colors.grey.shade200 : Theme.of(context).primaryColor,
@@ -529,6 +573,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ),
+                              child: Text(_isFollowing ? 'Following' : 'Follow'),
                             ),
                           ),
                           SizedBox(width: 8),
@@ -536,13 +581,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () {
                               // Implement message functionality
                             },
-                            child: Text('Message'),
                             style: OutlinedButton.styleFrom(
                               minimumSize: Size(0, 36),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
+                            child: Text('Message'),
                           ),
                         ],
                       ),
@@ -573,8 +618,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              // Post Grid (placeholder for now, would be populated from a PostService)
-              _postCount > 0 
+              // Post Grid with real data
+              _userPosts.isNotEmpty 
                   ? GridView.builder(
                       physics: NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
@@ -583,15 +628,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         crossAxisSpacing: 1,
                         mainAxisSpacing: 1,
                       ),
-                      itemCount: _postCount,
+                      itemCount: _userPosts.length,
                       itemBuilder: (context, index) {
-                        return Container(
-                          color: Colors.grey.shade300,
-                          child: Center(child: Icon(Icons.image)),
+                        final post = _userPosts[index];
+                        return GestureDetector(
+                          onTap: () => _navigateToPostDetail(post),
+                          child: post.imageUrl != null && post.imageUrl!.isNotEmpty
+                              ? Image.network(
+                                  post.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded / 
+                                              (loadingProgress.expectedTotalBytes ?? 1)
+                                            : null,
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade300,
+                                      child: Center(
+                                        child: Icon(Icons.error, color: Colors.red),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(
+                                  color: Colors.grey.shade300,
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(4.0),
+                                      child: Text(
+                                        post.description ?? '',
+                                        maxLines: 3,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontSize: 12),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                         );
                       },
                     )
-                  : Container(
+                  : SizedBox(
                       height: 200,
                       child: Center(
                         child: Column(

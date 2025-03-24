@@ -22,12 +22,12 @@ class _PostSetupState extends State<PostSetup> {
   final PostService _postService = PostService();
   final ProfileService _profileServices = ProfileService();
   final CommentService _commentService = CommentService();
-  TextEditingController _postController = TextEditingController();
-  TextEditingController _commentController = TextEditingController();
+  final TextEditingController _postController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
   File? _selectedImage;
   List<Post> _userPosts = [];
   bool _isLoading = true;
-  Map<String, String> _usernameCache = {};
+  final Map<String, String> _usernameCache = {};
   
   @override
   void initState() {
@@ -40,7 +40,7 @@ class _PostSetupState extends State<PostSetup> {
       print("Starting to load user posts");
       _postService.streamPostsByUser().listen(
         (posts) {
-          print("Received posts: ${posts?.length ?? 0}");
+          print("Received posts: ${posts.length ?? 0}");
           setState(() {
             _userPosts = posts ?? [];
             _isLoading = false;
