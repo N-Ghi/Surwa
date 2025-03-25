@@ -119,17 +119,49 @@ class PostService {
         .snapshots()
         .map((snapshot) {
           return snapshot.docs
-              .map((doc) => Post.fromMap(doc.data() as Map<String, dynamic>))
+              .map((doc) => Post.fromMap(doc.data()))
               .toList();
         });
   }
 
-  // Delete an existing post and its associated comments
-  Future<void> deletePost(String postID) async {
+  // Stream posts by a specific user
+  Stream<List<Post>> streamPostsByUserId(String userId) {
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
+
+    return FirebaseFirestore.instance
+        .collection('Post')
+        .doc(userId)
+        .collection('posts')
+        .orderBy('DateCreated', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => Post.fromMap(doc.data()))
+              .toList();
+        });
+  }
+  
+  // Stream a single post by its ID
+  Stream<Post?> streamPostById(String postID) {
     String? userID = currentUser?.uid;
-    if (userID == null) return;
-    
-    try {
+    if (userID == null) {
+      return Stream.value(null);
+    }
+
+    return FirebaseFirestore.instance
+        .collection('Post')
+        .doc(userID)
+        .collection('posts')
+        .doc(postID)
+        .snapshots()
+        .map((doc) => doc.exists ? Post.fromMap(doc.data()!) : null);
+  }
+  
+  // Delete an existing post and its associated comments
+  Future<bool> deletePost(String postID) async {
+    try{
       // First, delete all comments associated with this post
       final commentsQuery = await comments
           .where('postID', isEqualTo: postID)
@@ -145,16 +177,17 @@ class PostService {
       // Then delete the post itself using the correct path
       await FirebaseFirestore.instance
           .collection('Post')
-          .doc(userID)
+          .doc(currentUser!.uid)
           .collection('posts') // Updated to 'posts'
           .doc(postID)
           .delete();
 
       print("Post and all associated comments deleted successfully!");
+      return true;
     } catch (e) {
       print("Error deleting post and comments: $e");
+      return false;
     }
   }
-
 
 }

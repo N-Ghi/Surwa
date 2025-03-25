@@ -7,6 +7,7 @@ import 'package:surwa/data/models/profile.dart';
 import 'package:surwa/screens/test_screens/create_post.dart';
 import 'package:surwa/screens/test_screens/profile.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
+import 'package:surwa/screens/test_screens/search_page.dart';
 import 'package:surwa/screens/test_screens/settings.dart';
 import 'package:surwa/screens/test_screens/welcome_page.dart';
 import 'package:surwa/services/comment_service.dart';
@@ -15,6 +16,8 @@ import 'package:surwa/services/profile_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -24,11 +27,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final PostService _postService = PostService();
   final ProfileService _profileService = ProfileService();
   final CommentService _commentService = CommentService();
-  TextEditingController _commentController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
   List<Post> _allPosts = [];
   bool _isLoading = true;
-  Map<String, String> _usernameCache = {};
+  final Map<String, String> _usernameCache = {};
 
+  @override
   void initState() {
     super.initState();
     _loadAllPosts();
@@ -39,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print("Starting to load user posts");
       _postService.streamAllPostsExceptCurrentUser().listen(
         (posts) {
-          print("Received posts: ${posts?.length ?? 0}");
+          print("Received posts: ${posts.length ?? 0}");
           setState(() {
             _allPosts = posts ?? [];
             _isLoading = false;
@@ -115,6 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 authNotifier.signOut();
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
                   return WelcomePage();
+                }));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.search),
+              title: Text('Search'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return UserSearchScreen();
                 }));
               },
             ),
