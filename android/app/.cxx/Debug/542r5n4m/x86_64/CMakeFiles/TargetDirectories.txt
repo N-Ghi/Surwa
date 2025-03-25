@@ -1,0 +1,2 @@
+E:/flutter_projects/surwaapp/android/app/.cxx/Debug/542r5n4m/x86_64/CMakeFiles/edit_cache.dir
+E:/flutter_projects/surwaapp/android/app/.cxx/Debug/542r5n4m/x86_64/CMakeFiles/rebuild_cache.dir
