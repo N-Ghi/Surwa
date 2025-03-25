@@ -29,13 +29,14 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 20),
                 Center(
                   child: Image.asset(
                     'assets/images/surwa_logo.png',
-                    width: MediaQuery.of(context).size.width * 0.7, // Responsive width
-                    height: 200, // Fixed height, but you can make this responsive too
+                    width: MediaQuery.of(context).size.width * 0.7,
+                    height: 200,
                     fit: BoxFit.contain,
                   ),
                 ),
@@ -186,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const Text("Don't have an account?"),
         TextButton(
           onPressed: () {
-            Navigator.pushNamed(context, '/signup');
+            Navigator.pushNamed(context, '/register');
           },
           child: const Text(
             'Sign Up',
