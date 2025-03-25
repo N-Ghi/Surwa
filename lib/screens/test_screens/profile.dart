@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
 import 'package:surwa/screens/test_screens/login_page.dart';
+import 'package:surwa/services/auth_service.dart';
 import 'package:surwa/services/profile_service.dart';
 import 'package:surwa/services/post_service.dart';
 import 'package:surwa/data/models/profile.dart';
@@ -19,12 +20,10 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final ProfileService _profileService = ProfileService();
+  final AuthService _authService = AuthService();
   final PostService _postService = PostService();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _currentPasswordController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
   File? _selectedImage;
   Profile? _profile;
   User? _currentUser;
@@ -73,9 +72,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (_profile != null) {
         _usernameController.text = _profile!.username;
         _nameController.text = _profile!.name;        
-        if (_isCurrentUserProfile && _currentUser != null) {
-          _emailController.text = _currentUser!.email ?? '';
-        }
         
         // Load followers and following
         _followers = await _profileService.getFollowers(_profile!.userId);
@@ -174,21 +170,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   controller: _usernameController,
                   decoration: InputDecoration(labelText: 'Username'),
                 ),
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(labelText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                TextField(
-                  controller: _currentPasswordController,
-                  decoration: InputDecoration(labelText: 'Current Password'),
-                  obscureText: true,
-                ),
-                TextField(
-                  controller: _newPasswordController,
-                  decoration: InputDecoration(labelText: 'New Password'),
-                  obscureText: true,
-                ),
                 SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _pickImage,
@@ -214,15 +195,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 String? result = await _profileService.updateProfile(
                   name: _nameController.text.isNotEmpty ? _nameController.text : null,
                   username: _usernameController.text.isNotEmpty ? _usernameController.text : null,
-                  email: _emailController.text.isNotEmpty ? _emailController.text : null,
-                  newPassword: _newPasswordController.text.isNotEmpty ? _newPasswordController.text : null,
                   newProfileImage: _selectedImage,
-                  currentPassword: _currentPasswordController.text,
                 );
-
-                // Clear password fields for security
-                _currentPasswordController.clear();
-                _newPasswordController.clear();
 
                 if (mounted) {
                   setState(() {
@@ -267,7 +241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _isLoading = true;
                 });
                 
-                String? result = await _profileService.deleteProfile();
+                String? result = await _authService.deleteAccount();
                 
                 if (mounted) {
                   setState(() {
@@ -276,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   if (result == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Profile deleted successfully')),
+                      SnackBar(content: Text('Account deleted successfully')),
                     );
                     // Navigate to login or home screen
                     Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LoginScreen()));
@@ -387,6 +361,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     print("Navigate to post detail for post: ${post.postID}");
   }
 
+  Future<void> _updateImage() async {
+    if (!mounted) return;
+
+    try {
+      String? result = await _profileService.updateProfile(
+        newProfileImage: _selectedImage,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result ?? 'Profile Image updated successfully!')),
+      );
+
+      // Reload profile to show updated info
+      await _loadProfile();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile image: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -438,14 +445,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ListTile(
-                        leading: Icon(Icons.settings),
-                        title: Text('Settings'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _updateProfileForm();
-                        },
-                      ),
-                      ListTile(
                         leading: Icon(Icons.delete, color: Colors.red),
                         title: Text('Delete Account', style: TextStyle(color: Colors.red)),
                         onTap: () {
@@ -480,7 +479,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     // Profile Image
                     GestureDetector(
-                      onTap: _isCurrentUserProfile ? _pickImage : null,
+                      onTap: () async{
+                        if (_isCurrentUserProfile) {
+                          await _pickImage();
+                          if (_selectedImage != null) {
+                            await _updateImage();
+                          }
+                        }
+                      },
                       child: Stack(
                         children: [
                           CircleAvatar(

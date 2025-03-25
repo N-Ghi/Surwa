@@ -179,11 +179,7 @@
   Future<String?> updateProfile({
     String? name,
     String? username,
-    String? email,
-    String? password,
     File? newProfileImage,
-    String? newPassword,
-    required String currentPassword
   }) async {
     try {
       if (currentUser == null) {
@@ -199,7 +195,6 @@
       }
 
       String oldUsername = currentProfile.username;
-      String oldEmail = currentUser!.email ?? '';
       String oldName = currentProfile.name;
 
       Map<String, dynamic> profileUpdates = {};
@@ -248,41 +243,6 @@
           return 'Error uploading profile picture: ${e.toString()}';
         }
       }
-
-      // Handle email update (requires verification)
-      if (email != null && email.isNotEmpty && email != oldEmail) {
-        try {
-          await currentUser!.verifyBeforeUpdateEmail(email);
-          
-          // Mark email as pending verification in Firestore
-          profileUpdates['emailPendingVerification'] = true;
-          
-          return 'Verification email sent. Please verify your new email address.';
-        } catch (e) {
-          print('Email update failed: $e');
-          return 'Error updating email: ${e.toString()}';
-        }
-      }
-
-      // Handle password update (requires reauthentication)
-      if (newPassword != null && newPassword.isNotEmpty) {
-        try {
-          auth.AuthCredential credential = auth.EmailAuthProvider.credential(
-            email: currentUser!.email!, 
-            password: currentPassword,
-          );
-
-          await currentUser!.reauthenticateWithCredential(credential);
-          await currentUser!.updatePassword(newPassword);
-        } catch (e) {
-          if (e is auth.FirebaseAuthException && e.code == 'wrong-password') {
-            return 'Incorrect current password. Please try again.';
-          }
-          print('Password update failed: $e');
-          return 'Error updating password: ${e.toString()}';
-        }
-      }
-
       // Finalize profile update if there are changes
       if (profileUpdates.isNotEmpty) {
         await profileCollection.doc(userId).update(profileUpdates);
@@ -293,61 +253,6 @@
       return null; // Success, no error message needed
     } catch (e) {
       print("Error updating profile: $e");
-      return 'Error: ${e.toString()}';
-    }
-  }
-
-  // Delete the current user's profile and all associated data
-  Future<String?> deleteProfile() async {
-    try {
-      if (currentUser == null) {
-        throw Exception('User is not logged in');
-      }
-
-      String userId = currentUser!.uid;
-      
-      // Get the current profile
-      Profile? profile = await getLoggedInUserProfile();
-      if (profile == null) {
-        throw Exception('Profile not found');
-      }
-
-      // Delete the profile from Firestore
-      await profileCollection.doc(userId).delete();
-
-      // Delete the username mapping from UserMap collection
-      await userMapCollection.doc(profile.username).delete();
-
-      // Delete the profile picture from Storage if it exists
-      if (profile.profilePicture!.isNotEmpty) {
-        try {
-          // Get the file reference from the URL
-          String fileUrl = profile.profilePicture!;
-          await FirebaseStorage.instance.refFromURL(fileUrl).delete();
-        } catch (e) {
-          print("Warning: Could not delete profile picture: $e");
-        }
-        
-        // Delete from Supabase if applicable
-        try {
-          final supabaseClient = Supabase.instance.client;
-          final storage = supabaseClient.storage.from('profile-images');
-          
-          // Extract file path from URL if using Supabase
-          Uri uri = Uri.parse(profile.profilePicture!);
-          String filePath = uri.pathSegments.last;
-          
-          // Delete the file from Supabase Storage
-          await storage.remove([filePath]);
-        } catch (e) {
-          print("Warning: Could not delete from Supabase: $e");
-        }
-      }
-
-      print("Profile and associated data deleted successfully!");
-      return null; // Success, no error message
-    } catch (e) {
-      print("Error deleting profile: $e");
       return 'Error: ${e.toString()}';
     }
   }
