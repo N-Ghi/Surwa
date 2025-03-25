@@ -11,7 +11,7 @@ class ProfileScreen extends StatelessWidget {
         title: Row(
           children: [
             Text(
-              'Khalid_Sipiriyani',
+              'Kalisa_eric',
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
