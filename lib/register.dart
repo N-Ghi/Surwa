@@ -1,5 +1,5 @@
-// screens/register_screen.dart
 import 'package:flutter/material.dart';
+import 'login.dart'; // Make sure this import matches your project structure
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,6 +25,82 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  // Function to validate input fields
+  bool _validateInputs() {
+    if (_firstNameController.text.isEmpty ||
+        _lastNameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
+      _showErrorDialog('Please fill in all fields');
+      return false;
+    }
+
+    if (_passwordController.text.length < 8) {
+      _showErrorDialog('Password must be at least 8 characters long');
+      return false;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      _showErrorDialog('Passwords do not match');
+      return false;
+    }
+
+    // Basic email validation
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+        .hasMatch(_emailController.text)) {
+      _showErrorDialog('Please enter a valid email address');
+      return false;
+    }
+
+    return true;
+  }
+
+  // Function to show error dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Okay'),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+          )
+        ],
+      ),
+    );
+  }
+
+  // Function to handle account creation
+  void _createAccount() {
+    if (_validateInputs()) {
+      // Show success dialog and navigate to login screen
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Success'),
+          content: const Text('Account created successfully!'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Login'),
+              onPressed: () {
+                // Navigate to login screen and remove all previous routes
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (Route<dynamic> route) => false,
+                );
+              },
+            )
+          ],
+        ),
+      );
+    }
   }
 
   @override
@@ -216,9 +292,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: () {
-                    // Implement registration logic
-                  },
+                  onPressed: _createAccount,
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text(
                     'Create Account',
                     style: TextStyle(

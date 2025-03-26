@@ -1,7 +1,26 @@
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +30,7 @@ class ProfileScreen extends StatelessWidget {
         title: Row(
           children: [
             Text(
-              'Kalisa_eric',
+              'patrick',
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
@@ -37,7 +56,12 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 40,
-                  backgroundImage: AssetImage('assets/profile_picture.png'),
+                  // Use NetworkImage or File Image if from a file
+                  backgroundImage: AssetImage('assets/images/patrickprofile.jpg'),
+                  // Add error handling for image loading
+                  onBackgroundImageError: (exception, stackTrace) {
+                    print('Error loading image: $exception');
+                  },
                 ),
                 SizedBox(width: 24),
                 Expanded(
@@ -78,24 +102,53 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildActionButton(Icons.grid_on, Colors.green),
-              _buildActionButton(Icons.favorite_border, Colors.black),
-              _buildActionButton(Icons.bookmark_border, Colors.black),
+          // Tabs for Posts, Likes, and Tags
+          TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.green,
+            labelColor: Colors.green,
+            unselectedLabelColor: Colors.black,
+            tabs: [
+              Tab(icon: Icon(Icons.grid_on)),
+              Tab(icon: Icon(Icons.favorite_border)),
+              Tab(icon: Icon(Icons.bookmark_border)),
             ],
           ),
-          Divider(),
           Expanded(
-            child: Center(
-              child: Text(
-                "You don't have any posts yet..",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Posts Tab
+                Center(
+                  child: Text(
+                    "You don't have any posts yet..",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
-              ),
+                // Likes Tab
+                Center(
+                  child: Text(
+                    "No liked posts",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                // Tags Tab
+                Center(
+                  child: Text(
+                    "No tagged posts",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -120,22 +173,6 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildActionButton(IconData icon, Color color) {
-    return Container(
-      width: 120,
-      height: 36,
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: color == Colors.green ? color : Colors.transparent,
-            width: 2,
-          ),
-        ),
-      ),
-      child: Icon(icon, color: color),
     );
   }
 }

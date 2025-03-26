@@ -1,8 +1,8 @@
-// main.dart
 import 'package:flutter/material.dart';
+import 'screens/test_screens/profile.dart' as test_profile;
 import 'splash.dart';
-import 'login.dart';
-import 'register.dart';
+import 'login.dart' as login;
+import 'register.dart' as register;
 import 'forgot_password.dart';
 import 'profile.dart';
 import 'market.dart';
@@ -49,10 +49,10 @@ class SurwaApp extends StatelessWidget {
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
+        '/login': (context) => const login.LoginScreen(),
+        '/register': (context) => const register.RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/profile': (context) => ProfileScreen(),
+        '/profile': (context) => const ProfileScreen(),
         '/market': (context) => MarketScreen(),
       },
     );
