@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'shoppingcart.dart';
 
 class MarketScreen extends StatelessWidget {
   const MarketScreen({super.key});
@@ -33,7 +34,13 @@ class MarketScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: Icon(Icons.shopping_cart, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              // Navigate to Shopping Cart Screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ShoppingCartScreen()),
+              );
+              },
           ),
         ],
       ),
