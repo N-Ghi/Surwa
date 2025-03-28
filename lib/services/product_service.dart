@@ -10,10 +10,12 @@ class ProductService {
 
   // CREATE: Add a Product with ownerId
   Future<DocumentReference<Object?>> addProduct(Product product, File ? imageFile) async {
+    print("New product");
     
      if (imageFile != null) {
+        print("New product 2");
         final imagePickerService = ImagePickerService();
-
+       
         // Upload the image and get the URL
         String? imageUrl = await imagePickerService.uploadPostImage(imageFile, 'products/${product.ownerId}/${product.productId}');
         print("Image URL after upload: $imageUrl");

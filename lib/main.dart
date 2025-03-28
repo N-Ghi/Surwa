@@ -1,4 +1,6 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:surwa/screens/test_screens/AddProduct.dart';
 import 'screens/test_screens/profile.dart' as test_profile;
 import 'splash.dart';
 import 'login.dart' as login;
@@ -7,7 +9,9 @@ import 'forgot_password.dart';
 import 'profile.dart';
 import 'market.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Firebase.initializeApp();
   runApp(const SurwaApp());
 }
 
@@ -49,7 +53,7 @@ class SurwaApp extends StatelessWidget {
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
-        '/login': (context) => const login.LoginScreen(),
+        '/login': (context) => AddProductScreen(),
         '/register': (context) => const register.RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/profile': (context) => const ProfileScreen(),
