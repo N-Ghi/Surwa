@@ -104,6 +104,42 @@ class PostService {
     );
   }
   
+  // Get all posts by followed users
+  Stream<List<Post>> streamPostsByFollowedUsers() {
+    String? userID = currentUser?.uid;
+    
+    return FirebaseFirestore.instance.collection('Post').doc(userID).snapshots().asyncMap(
+      (userDoc) async {
+        List<Post> allPosts = [];
+        
+        print('Fetched user: $userID');
+        
+        // Get the list of users that the current user is following
+        List<String> following = List.from(userDoc.data()?['following'] ?? []);
+        
+        print('User $userID is following ${following.length} users');
+        
+        for (var followedUserID in following) {
+          print('Checking user: $followedUserID');
+          
+          // Use correct capitalization here - "DateCreated" not "dateCreated"
+          var postDocs = await FirebaseFirestore.instance
+              .collection('Post')
+              .doc(followedUserID)
+              .collection('posts')
+              .orderBy('DateCreated', descending: true)  // Capitalized field name
+              .get();
+          
+          print('User $followedUserID has ${postDocs.docs.length} posts');
+          
+          allPosts.addAll(postDocs.docs.map((doc) => Post.fromMap(doc.data())).toList());
+        }
+        
+        print('Total posts retrieved: ${allPosts.length}');
+        return allPosts;
+      },
+    );
+  }
   // Read posts by current user
   Stream<List<Post>> streamPostsByUser() {
 
