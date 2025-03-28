@@ -86,90 +86,118 @@ Future<void> _createProfile() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Create Profile')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(
-                labelText: 'Username',
-                labelStyle: TextStyle(color: Colors.black54),
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black),
+      backgroundColor: Color(0xFFFFD62C),
+      body: Container(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FittedBox(child: Image(image: AssetImage("assets/images/surwa_logo.png"))),
+              SizedBox(height: 16),
+              Text(
+                "Complete Profile",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: Colors.black
+              SizedBox(height: 16),
+              TextField(
+                controller: _usernameController,
+                decoration: InputDecoration(
+                  labelText: 'Username',
+                  labelStyle: TextStyle(color: Colors.black54),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
                 ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Name',
-                labelStyle: TextStyle(color: Colors.black54),
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.black),
-                ),
-                ),
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
-            ),
-            SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Role',
-                labelStyle: TextStyle(color: Colors.black54),
-                border: OutlineInputBorder(),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.black
+                  ),
               ),
-              value: role, // Now correctly handles null as initial value
-              hint: Text('Select a role'), // Added hint text for initial state
-              onChanged: (value) => setState(() => role = value),
-              items: const [
-                DropdownMenuItem(value: "Artist", child: Text("Artist")),
-                DropdownMenuItem(value: "Artisan", child: Text("Artisan")),
-              ],
-            ),
-            SizedBox(height: 24),
-            Row(
-              children: [
-                Text("Profile Picture:", style: TextStyle(fontSize: 16, color: Colors.black54)),
-                SizedBox(width: 8),
-                ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: Icon(Icons.photo),
-                label: Text('Pick Picture'),
+              SizedBox(height: 16),
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  labelStyle: TextStyle(color: Colors.black54),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
+                  ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
+              ),
+              SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Role',
+                  labelStyle: TextStyle(color: Colors.black54),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Colors.black),
+                  ),
                 ),
-                SizedBox(width: 8),
-                if (_selectedImage != null) // Show indicator when image is selected
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: FileImage(_selectedImage!),
-                        fit: BoxFit.cover,
+                value: role,
+                hint: const Text('Select a role', style: TextStyle(color: Colors.black54)),
+                onChanged: (value) => setState(() => role = value),
+                items: const [
+                  DropdownMenuItem(
+                    value: "Artist",
+                    child: Text("Artist"),
+                  ),
+                  DropdownMenuItem(
+                    value: "Artisan",
+                    child: Text("Artisan"),
+                  ),
+                ],
+                selectedItemBuilder: (BuildContext context) => [
+                  const Text("Artist", style: TextStyle(color: Colors.black)),
+                  const Text("Artisan", style: TextStyle(color: Colors.black)),
+                ],
+              ),
+
+              SizedBox(height: 24),
+              Row(
+                children: [
+                  Text("Profile Picture:", style: TextStyle(fontSize: 16, color: Colors.black54)),
+                  SizedBox(width: 8),
+                  ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: Icon(Icons.photo),
+                  label: Text('Pick Picture'),
+                  ),
+                  SizedBox(width: 8),
+                  if (_selectedImage != null) // Show indicator when image is selected
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: DecorationImage(
+                          image: FileImage(_selectedImage!),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _createProfile,
-              style: ElevatedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                ],
               ),
-              child: Text('Create Profile', style: TextStyle(fontSize: 16)),
-            ),
-          ],
+              SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _createProfile,
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: Text('Create Profile', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
         ),
       ),
     );

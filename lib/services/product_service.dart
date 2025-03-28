@@ -5,27 +5,25 @@ import 'package:surwa/data/models/product.dart';
 import 'package:surwa/services/image_picker_service.dart';
 
 class ProductService {
-  final CollectionReference productCollection =
-      FirebaseFirestore.instance.collection('Product');
+  final CollectionReference productCollection = FirebaseFirestore.instance.collection('Product');
+  final imagePickerService = ImagePickerService();
 
   // CREATE: Add a Product with ownerId
-  Future<DocumentReference<Object?>> addProduct(Product product, File ? imageFile) async {
+  Future<DocumentReference<Object?>> addProduct(Product product, File? imageFile) async {
     
-     if (imageFile != null) {
-        final imagePickerService = ImagePickerService();
+    if (imageFile != null) {
+      // Upload the image and get the URL
+      String? imageUrl = await imagePickerService.uploadProductImage(imageFile, 'products/${product.ownerId}/${product.productId}');
+      print("Image URL after upload: $imageUrl");
 
-        // Upload the image and get the URL
-        String? imageUrl = await imagePickerService.uploadPostImage(imageFile, 'products/${product.ownerId}/${product.productId}');
-        print("Image URL after upload: $imageUrl");
+      // Explicitly assign the image URL if it's not null
+      if (imageUrl != null) {
+        product.imageUrl = imageUrl;
+        // Make sure to assign it
+      }
 
-        // Explicitly assign the image URL if it's not null
-        if (imageUrl != null) {
-          product.imageUrl = imageUrl;
-           // Make sure to assign it
-        }
-
-      } 
-     return await productCollection.add({
+    } 
+    return await productCollection.add({
       'ownerId': product.ownerId, // Store the owner's ID
       'name': product.name,
       'price': product.price,
@@ -40,11 +38,11 @@ class ProductService {
   Stream<List<Product>> getProducts() {
     return productCollection.orderBy('timestamp', descending: true).snapshots().map(
       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
+      return snapshot.docs.map(
         (doc){
           return Product.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
         }
-       ).toList();
+      ).toList();
       }
     );
   }
@@ -59,11 +57,11 @@ class ProductService {
   Stream<List<Product>> getProductsByUser(String ownerId) {
     return productCollection.where('ownerId', isEqualTo: ownerId).snapshots().map(
       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
+      return snapshot.docs.map(
         (doc){
           return Product.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
         }
-       ).toList();
+      ).toList();
       }
     );
   }

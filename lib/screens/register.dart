@@ -133,6 +133,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
@@ -154,6 +159,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
@@ -196,6 +206,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
                 TextField(
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black,
+                  ),
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
