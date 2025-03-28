@@ -108,7 +108,7 @@ class PostService {
   Stream<List<Post>> streamPostsByFollowedUsers() {
     String? userID = currentUser?.uid;
     
-    return FirebaseFirestore.instance.collection('Post').doc(userID).snapshots().asyncMap(
+    return FirebaseFirestore.instance.collection('Profile').doc(userID).snapshots().asyncMap(
       (userDoc) async {
         List<Post> allPosts = [];
         
@@ -122,7 +122,6 @@ class PostService {
         for (var followedUserID in following) {
           print('Checking user: $followedUserID');
           
-          // Use correct capitalization here - "DateCreated" not "dateCreated"
           var postDocs = await FirebaseFirestore.instance
               .collection('Post')
               .doc(followedUserID)
@@ -140,6 +139,7 @@ class PostService {
       },
     );
   }
+  
   // Read posts by current user
   Stream<List<Post>> streamPostsByUser() {
 
