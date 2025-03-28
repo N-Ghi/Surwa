@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 import 'package:surwa/screens/complete_profile.dart';
-import 'package:surwa/screens/dashboard.dart';
+import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
 import 'package:surwa/screens/test_screens/dashboard.dart';
 import 'package:surwa/screens/login.dart';

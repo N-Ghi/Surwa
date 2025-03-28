@@ -4,12 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:surwa/data/models/comment.dart';
 import 'package:surwa/data/models/post.dart';
 import 'package:surwa/data/models/profile.dart';
+import 'package:surwa/screens/profile_search.dart';
 import 'package:surwa/screens/test_screens/create_post.dart';
 import 'package:surwa/screens/login.dart';
-import 'package:surwa/screens/test_screens/profile.dart';
+import 'package:surwa/screens/profile.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
-import 'package:surwa/screens/test_screens/search_page.dart';
-import 'package:surwa/screens/test_screens/settings.dart';
 import 'package:surwa/services/comment_service.dart';
 import 'package:surwa/services/post_service.dart';
 import 'package:surwa/services/profile_service.dart';
@@ -18,53 +17,70 @@ import 'package:timeago/timeago.dart' as timeago;
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
-
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProviderStateMixin {
   final PostService _postService = PostService();
   final ProfileService _profileService = ProfileService();
   final CommentService _commentService = CommentService();
   final TextEditingController _commentController = TextEditingController();
-  List<Post> _allPosts = [];
+  
+  late TabController _tabController;
+  List<Post> _discoverPosts = [];
+  List<Post> _followingPosts = [];
   bool _isLoading = true;
   final Map<String, String> _usernameCache = {};
 
   @override
   void initState() {
     super.initState();
-    _loadAllPosts();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadPosts();
   }
-  
-  void _loadAllPosts() async{
-    try {
-      print("Starting to load user posts");
-      _postService.streamAllPostsExceptCurrentUser().listen(
-        (posts) {
-          print("Received posts: ${posts.length ?? 0}");
-          setState(() {
-            _allPosts = posts ?? [];
-            _isLoading = false;
-          });
-        },
-        onError: (error) {
-          print("Error loading posts: $error");
-          setState(() {
-            _isLoading = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Error loading posts: $error")),
-          );
-        },
-      );
-    } catch (e) {
-      print("Exception in _loadAllPosts: $e");
-      setState(() {
-        _isLoading = false;
-      });
-    }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _loadPosts() {
+    // Load Discover Posts (all posts except current user's)
+    _postService.streamAllPostsExceptCurrentUser().listen(
+      (posts) {
+        setState(() {
+          _discoverPosts = posts ?? [];
+          _isLoading = false;
+        });
+      },
+      onError: (error) {
+        _handlePostLoadError(error);
+      },
+    );
+
+    // Load Following Posts
+    _postService.streamPostsByFollowedUsers().listen(
+      (posts) {
+        setState(() {
+          _followingPosts = posts ?? [];
+        });
+      },
+      onError: (error) {
+        _handlePostLoadError(error);
+      },
+    );
+  }
+
+  void _handlePostLoadError(dynamic error) {
+    print("Error loading posts: $error");
+    setState(() {
+      _isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error loading posts: $error")),
+    );
   }
 
   Widget drawer() {
@@ -119,15 +135,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 authNotifier.signOut();
                 Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
                   return LoginScreen();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.search),
-              title: Text('Search'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return UserSearchScreen();
                 }));
               },
             ),
@@ -319,161 +326,145 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
 
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text("Home"),
-          centerTitle: true,
-          actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return SettingsPage();
-              }));
-            },
-            icon: Icon(Icons.settings),
-          ),
-        ],
-        ),
-        drawer: drawer(),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 10),
-              Text("Loading posts..."),
-            ],
-          ),
+  Widget _buildPostList(List<Post> posts) {
+    if (posts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.no_photography_outlined, size: 100),
+            Text("No posts available"),
+            Text("Follow more creators or explore!"),
+          ],
         ),
       );
     }
-    
-    // Check if posts exist
-    if (_allPosts.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text("Home"),
-          centerTitle: true,
-          actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return SettingsPage();
-              }));
-            },
-            icon: Icon(Icons.settings),
-          ),
-        ],
-        ),
-        drawer: drawer(),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.no_photography_outlined, size: 100),
-              Text("No creator has made a post yet."),
-              Text("Be the first to create a post!"),
-            ],
-          ),
-        ),
-      );
-    }
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Home"),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return SettingsPage();
-              }));
-            },
-            icon: Icon(Icons.settings),
-          ),
-        ],
-      ),
-      drawer: drawer(),
-      // View posts by creators
-      body: ListView.builder(
-        itemCount: _allPosts.length,
-        itemBuilder: (context, index) {
-          final post = _allPosts[index];
-          return Card(
-            margin: EdgeInsets.all(8.0),
+
+    return ListView.builder(
+      itemCount: posts.length,
+      itemBuilder: (context, index) {
+        final post = posts[index];
+        return _buildPostCard(post);
+      },
+    );
+  }
+
+  Widget _buildPostCard(Post post) {
+    return Card(
+      margin: EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (post.imageUrl != null)
+            Image.network(
+              post.imageUrl!,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded / 
+                          loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: double.infinity,
+                  height: 200,
+                  color: Colors.grey[300],
+                  child: Center(
+                    child: Icon(Icons.error, color: Colors.red),
+                  ),
+                );
+              },
+            ),
+          Padding(
+            padding: EdgeInsets.all(8.0),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (post.imageUrl != null)
-                  Image.network(
-                    post.imageUrl!,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded / 
-                                loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: double.infinity,
-                        height: 200,
-                        color: Colors.grey[300],
-                        child: Center(
-                          child: Icon(Icons.error, color: Colors.red),
-                        ),
-                      );
-                    },
-                  ),
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Column(
-                    children: [
-                      Text(post.description),
-                      SizedBox(height: 10),
-                      FutureBuilder<String>(
-                        future: _getUsernameFromId(post.posterID),
-                        builder: (context, snapshot) {
-                          return Text("Posted by: ${snapshot.data ?? 'Loading...'}");
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                StreamBuilder<List<Comment>>(
-                  stream: _commentService.streamCommentsByPost(post.postID),
+                Text(post.description),
+                SizedBox(height: 10),
+                FutureBuilder<String>(
+                  future: _getUsernameFromId(post.posterID),
                   builder: (context, snapshot) {
-                    int commentCount = snapshot.data?.length ?? 0;
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          onPressed: () {
-                            _commentSection(post);
-                          },
-                          icon: Icon(Icons.comment)
-                        ),
-                        Text("$commentCount"),
-                      ],
-                    );
+                    return Text("Posted by: ${snapshot.data ?? 'Loading...'}");
                   },
-                )
+                ),
               ],
             ),
-          );
-        },
+          ),
+          _buildCommentSection(post)
+        ],
       ),
     );
   }
 
+  Widget _buildCommentSection(Post post) {
+    return StreamBuilder<List<Comment>>(
+      stream: _commentService.streamCommentsByPost(post.postID),
+      builder: (context, snapshot) {
+        int commentCount = snapshot.data?.length ?? 0;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            IconButton(
+              onPressed: () {
+                _commentSection(post);
+              },
+              icon: Icon(Icons.comment)
+            ),
+            Text("$commentCount"),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'Discover'),
+            Tab(text: 'Following'),
+          ],
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) {
+                return ProfileSearch();
+              }));
+            },
+            icon: Icon(Icons.search),
+          ),
+        ],
+      ),
+      drawer: drawer(),
+      body: _isLoading 
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 10),
+                Text("Loading posts..."),
+              ],
+            ),
+          )
+        : TabBarView(
+            controller: _tabController,
+            children: [
+              _buildPostList(_discoverPosts),
+              _buildPostList(_followingPosts),
+            ],
+          ),
+    );
+  }
 }

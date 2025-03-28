@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
-import 'package:surwa/screens/dashboard.dart';
+import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -263,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text("Don't have an account?"),
+        const Text("Don't have an account?", style: TextStyle(color: Colors.black),),
         TextButton(
           onPressed: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => RegisterScreen()));

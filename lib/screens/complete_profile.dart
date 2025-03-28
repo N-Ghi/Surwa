@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
-import 'package:surwa/screens/dashboard.dart';
+import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/services/profile_service.dart';
 import 'package:surwa/data/models/profile.dart';
 
@@ -86,7 +86,6 @@ Future<void> _createProfile() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFD62C),
       appBar: AppBar(title: Text('Create Profile')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
