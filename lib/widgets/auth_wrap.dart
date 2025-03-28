@@ -2,9 +2,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
+import 'package:surwa/screens/complete_profile.dart';
+import 'package:surwa/screens/dashboard.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
 import 'package:surwa/screens/test_screens/dashboard.dart';
-import 'package:surwa/screens/test_screens/welcome_page.dart';
+import 'package:surwa/screens/login.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -16,7 +18,7 @@ class AuthWrapper extends StatelessWidget {
     if (user == null) {
       // User not logged in, show login screen
       print("User not logged in");
-      return WelcomePage();
+      return LoginScreen();
     } else {
       // User logged in, check both profile completion and database existence
       return Consumer<ProfileCompletionNotifier>(
@@ -48,7 +50,7 @@ class AuthWrapper extends StatelessWidget {
           }
           
           print("Profile completion checked");
-          return profileNotifier.isProfileComplete ? HomeScreen() : ProfileTestScreen();
+          return profileNotifier.isProfileComplete ? DashboardScreen() : CompleteProfile();
         },
       );
     }
