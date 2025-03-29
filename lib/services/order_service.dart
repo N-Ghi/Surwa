@@ -6,15 +6,17 @@ class OrderService {
       FirebaseFirestore.instance.collection('Order');
 
   // CREATE: Add a new Order
-  Future<void> addOrder(OrderClass order) async {
-    await orderCollection.add({
+  Future<String> addOrder(OrderClass order) async {
+    final String orderId = orderCollection.doc().id;
+    await orderCollection.doc().set({
+      'orderId':orderId,
       'productId': order.productId,
       'userId': order.userId,
       'quantity': order.quantity,
       'price': order.price,
-      'orderStatus': order.orderStatus,
       'timestamp': FieldValue.serverTimestamp(),
     });
+    return orderId;
   }
 
   // READ: Fetch all Orders
@@ -48,12 +50,11 @@ class OrderService {
     );
   }
   // UPDATE: Update an Order (e.g. change status, quantity)
-  Future<void> updateOrder(String orderId, String newProductId, int newQuantity, String newPrice, String newOrderStatus) {
+  Future<void> updateOrder(String orderId, String newProductId, int newQuantity, String newPrice) {
     return orderCollection.doc(orderId).update({
       'productId': newProductId,
       'quantity': newQuantity,
       'price': newPrice,
-      'orderStatus': newOrderStatus,
       'timeStamp': FieldValue.serverTimestamp()
     });
   }

@@ -1,8 +1,11 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:surwa/data/models/message.dart';
+import 'package:surwa/screens/chat_screen.dart';
 import 'package:surwa/screens/test_screens/create_user.dart';
 import 'package:surwa/screens/test_screens/login_page.dart';
+import 'package:surwa/screens/test_screens/settings.dart';
 import 'package:surwa/services/auth_service.dart';
 import 'package:surwa/services/profile_service.dart';
 import 'package:surwa/services/post_service.dart';
@@ -114,40 +117,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _toggleFollow() async {
-    if (_profile == null || _currentUser == null) return;
-    
-    bool success;
-    if (_isFollowing) {
-      success = await _profileService.unfollowUser(_profile!.userId);
-      if (success) {
-        setState(() {
-          _isFollowing = false;
-          _followers.removeWhere((follower) => follower.userId == _currentUser!.uid);
-        });
+      if (_profile == null || _currentUser == null) return;
+
+      // Check if the current user is trying to follow themselves
+      if (_profile!.userId == _currentUser!.uid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("You can't follow yourself")),
+        );
+        return;
       }
-    } else {
-      success = await _profileService.followUser(_profile!.userId);
-      if (success) {
-        setState(() {
-          _isFollowing = true;
-          // Add current user to followers list
-          // In a real app, you'd fetch the current user's profile
-          _profileService.getLoggedInUserProfile().then((currentUserProfile) {
-            if (currentUserProfile != null && mounted) {
-              setState(() {
-                _followers.add(currentUserProfile);
-              });
-            }
+      
+      bool success;
+      if (_isFollowing) {
+        success = await _profileService.unfollowUser(_profile!.userId);
+        if (success) {
+          setState(() {
+            _isFollowing = false;
+            _followers.removeWhere((follower) => follower.userId == _currentUser!.uid);
           });
-        });
+        }
+      } else {
+        success = await _profileService.followUser(_profile!.userId);
+        if (success) {
+          setState(() {
+            _isFollowing = true;
+            // Add current user to followers list
+            _profileService.getLoggedInUserProfile().then((currentUserProfile) {
+              if (currentUserProfile != null && mounted) {
+                setState(() {
+                  _followers.add(currentUserProfile);
+                });
+              }
+            });
+          });
+        }
       }
-    }
-    
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to ${_isFollowing ? 'unfollow' : 'follow'} user')),
-      );
-    }
+      
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to ${_isFollowing ? 'unfollow' : 'follow'} user')),
+        );
+      }
   }
 
   Future<void> _updateProfileForm() async {
@@ -445,6 +455,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ListTile(
+                        leading: Icon(Icons.settings),
+                        title: Text('Settings'),
+                        onTap: () {
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                        },
+                      ),
+                      ListTile(
                         leading: Icon(Icons.delete, color: Colors.red),
                         title: Text('Delete Account', style: TextStyle(color: Colors.red)),
                         onTap: () {
@@ -585,7 +602,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           SizedBox(width: 8),
                           OutlinedButton(
                             onPressed: () {
-                              // Implement message functionality
+                              // Create a Message object to pass to the ChatScreen
+                              final message = Message(
+                                collectionId: '',
+                                fromUserId: FirebaseAuth.instance.currentUser!.uid, // Current user ID
+                                toUserId: _profile!.userId, // ID of the profile user you're messaging
+                                message: '', // Empty initially
+                                status: '', // Initial status
+                                timeStamp: '' // Initial timestamp
+                              );
+
+                              // Navigate to the ChatScreen
+                              Navigator.push(
+                                context, 
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(user: message)
+                                )
+                              );
                             },
                             style: OutlinedButton.styleFrom(
                               minimumSize: Size(0, 36),

@@ -23,11 +23,13 @@ class ProductService {
       }
 
     } 
+    print(" product: ${product.category}");
     return await productCollection.add({
       'ownerId': product.ownerId, // Store the owner's ID
       'name': product.name,
       'price': product.price,
-      'category': product.category,
+      'category': product.category.name,
+      'description':product.description,
       'imageUrl': product.imageUrl,
       'inStock': product.inStock,
       'timestamp': FieldValue.serverTimestamp(),
@@ -67,12 +69,8 @@ class ProductService {
   }
 
   // UPDATE: Update a Product
-  Future<void> updateProduct (String docId, String newName, String newPrice, String newCategory, String newImageUrl, int newStock) async {
+  Future<void> updateProduct (String docId, int newStock) async {
     return await productCollection.doc(docId).update({
-      'name': newName,
-      'price': newPrice,
-      'category': newCategory,
-      'imageUrl': newImageUrl,
       'inStock': newStock,
     });
   }

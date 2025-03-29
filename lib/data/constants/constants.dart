@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class KTestStyle {
@@ -19,4 +21,10 @@ class KTestStyle {
 
 class KConstants {
   static const themeModeKey = 'themeModeKey';
+}
+
+String generateTransactionId() {
+  Random random = Random();
+  String digits = List.generate(6, (index) => random.nextInt(10).toString()).join();
+  return 'trans-$digits';
 }

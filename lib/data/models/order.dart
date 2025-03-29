@@ -3,8 +3,7 @@ class OrderClass {
   final String productId;
   final String userId;
   final int quantity;
-  final String price;
-  final String orderStatus;
+  String price;
   final String timeStamp;
 
   OrderClass({
@@ -13,7 +12,6 @@ class OrderClass {
     required this.userId,
     required this.quantity,
     required this.price,
-    required this.orderStatus,
     required this.timeStamp,
   });
 
@@ -25,7 +23,6 @@ class OrderClass {
       userId: data['userId'] ?? '',
       quantity: int.tryParse(data['quantity'].toString()) ?? 0,
       price: data['price'] ?? '',
-      orderStatus: data['orderStatus'] ?? '',
       timeStamp: data['timeStamp'] ?? '',
     );
   }
@@ -33,11 +30,10 @@ class OrderClass {
   // Convert Order Object to JSON for Firestore
   Map<String, dynamic> toJson() {
     return {
-      'productID': productId,
+      'productId': productId,
       'userId': userId,
       'quantity': quantity,
       'price': price,
-      'orderStatus': orderStatus,
       'timeStamp': timeStamp,
     };
   }

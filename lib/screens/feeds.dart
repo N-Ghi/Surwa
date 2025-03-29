@@ -4,7 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:surwa/data/models/comment.dart';
 import 'package:surwa/data/models/post.dart';
 import 'package:surwa/data/models/profile.dart';
+import 'package:surwa/screens/market.dart';
+import 'package:surwa/screens/message.dart';
 import 'package:surwa/screens/profile_search.dart';
+import 'package:surwa/screens/test_screens/AddProduct.dart';
+import 'package:surwa/screens/test_screens/ViewPaymentsPage.dart';
 import 'package:surwa/screens/test_screens/create_post.dart';
 import 'package:surwa/screens/login.dart';
 import 'package:surwa/screens/profile.dart';
@@ -61,10 +65,13 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     );
 
     // Load Following Posts
+    print("Getting posts by followed users");
+
     _postService.streamPostsByFollowedUsers().listen(
       (posts) {
         setState(() {
           _followingPosts = posts ?? [];
+          print("Following posts: $posts");
         });
       },
       onError: (error) {
@@ -108,6 +115,16 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               },
             ),
             ListTile(
+              leading: Icon(Icons.message),
+              title: Text('Messages'),
+              onTap: () {
+                // Navigate to settings page
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return MessagesScreen();
+                }));
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.person),
               title: Text('Profile'),
               onTap: () {
@@ -123,6 +140,33 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) {
                   return PostSetup();
+                }));
+              },
+            ),
+             ListTile(
+              leading: Icon(Icons.sell),
+              title: Text('Products'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return MarketScreen();
+                }));
+              },
+            ),
+             ListTile(
+              leading: Icon(Icons.add),
+              title: Text('Add Products'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return AddProductScreen();
+                }));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.payment),
+              title: Text('Payments'),
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) {
+                  return ViewPaymentsPage();
                 }));
               },
             ),

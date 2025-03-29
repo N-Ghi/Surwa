@@ -1,9 +1,12 @@
+import 'package:surwa/data/constants/productCategory.dart';
+
 class Product {
   final String productId;
   final String ownerId;
   final String name;
   final String price;
-  final String category;
+  final ProductCategory category;
+  final String description;
   String imageUrl;
   final int inStock;
 
@@ -13,9 +16,12 @@ class Product {
     required this.name,
     required this.price,
     required this.category,
+    required this.description,
     required this.imageUrl,
     required this.inStock,
   });
+
+ 
 
   // Convert Firestore DocumentSnapshot to Product Object
   factory Product.fromFirestore(Map<String, dynamic> data, String docId) {
@@ -24,7 +30,8 @@ class Product {
       ownerId: data['ownerId'],
       name: data['name'] ?? '',
       price: data['price'] ?? '',
-      category: data['category'] ?? '',
+      category: parseCategory(data['category']),
+      description: data['description'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       inStock: int.tryParse(data['inStock'].toString()) ?? 0,
     );

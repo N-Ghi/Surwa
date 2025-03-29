@@ -1,7 +1,7 @@
 class Payment {
   final String paymentId;
   final String payerId;
-  final String orderId;
+  final String cartId;
   final String paymentAmount;
   final String transactionRefNo;
   final String timeStamp;
@@ -9,7 +9,7 @@ class Payment {
   Payment({
     required this.paymentId,
     required this.payerId,
-    required this.orderId,
+    required this.cartId,
     required this.paymentAmount,
     required this.transactionRefNo,
     required this.timeStamp,
@@ -20,7 +20,7 @@ class Payment {
     return Payment(
       paymentId: docId,
       payerId: data['payerId'] ?? '',
-      orderId: data['orderId'] ?? '',
+      cartId: data['cartId'] ?? '',
       paymentAmount: data['paymentAmount'] ?? '',
       transactionRefNo: data['transactionRefNo']?? '',
       timeStamp: data['timeStamp'] ?? '',
@@ -31,7 +31,7 @@ class Payment {
   Map<String, dynamic> toJson() {
     return {
       'payerId': payerId,
-      'orderId': orderId,
+      'cartId': cartId,
       'paymentAmount': paymentAmount,
       'timeStamp': timeStamp,
     };

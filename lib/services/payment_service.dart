@@ -9,7 +9,7 @@ class PaymentService {
   Future<void> addPayment(Payment payment) async{
     await paymentCollection.add({
       'payerId': payment.payerId,
-      'orderId': payment.orderId,
+      'cartId': payment.cartId,
       'paymentAmount': payment.paymentAmount,
       'transactionRefNo': payment.transactionRefNo,
       'timestamp': FieldValue.serverTimestamp(),

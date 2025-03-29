@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:surwa/data/constants/productCategory.dart';
 import 'package:surwa/data/models/product.dart';
+import 'package:surwa/screens/feeds.dart';
 import 'package:uuid/uuid.dart';
-import 'package:path/path.dart';
 import 'package:surwa/services/product_service.dart';
-
 
 class AddProductScreen extends StatefulWidget {
   @override
@@ -18,14 +19,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final ProductService productService = ProductService();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _categoryController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _stockController = TextEditingController();
   File? _selectedImage;
+  ProductCategory _selectedCategory = ProductCategory.clothing;
 
-  final String _ownerId = "HhC52h2IN9UBWnwb5FGxWywfzyT2"; // Replace with actual user ID
+  final String _ownerId = FirebaseAuth.instance.currentUser!.uid; // Replace with actual user ID
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (pickedFile != null) {
       setState(() {
@@ -41,27 +44,32 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     String productId = Uuid().v4();
     Product product = Product(
-      productId: productId,
-      ownerId: _ownerId,
-      name: _nameController.text.trim(),
-      price: _priceController.text.trim(),
-      category: _categoryController.text.trim(),
-      inStock: int.parse(_stockController.text.trim()),
-      imageUrl: "url"
-    );
-    _categoryController.clear();
+        productId: productId,
+        ownerId: _ownerId,
+        name: _nameController.text.trim(),
+        price: _priceController.text.trim(),
+        category: _selectedCategory,
+        description: _descriptionController.text.trim(),
+        inStock: int.parse(_stockController.text.trim()),
+        imageUrl: "url");
+    _descriptionController.clear();
     _nameController.clear();
     _priceController.clear();
     _stockController.clear();
 
     try {
-      DocumentReference productRef = await productService.addProduct(product, _selectedImage);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Product Added Successfully!")));
+      DocumentReference productRef =
+          await productService.addProduct(product, _selectedImage);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Product Added Successfully!")));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );
     } catch (e) {
       print(e);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +84,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(labelText: 'Product Name'),
-                validator: (value) => value!.isEmpty ? 'Enter product name' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'Enter product name' : null,
               ),
               TextFormField(
                 controller: _priceController,
@@ -85,15 +94,33 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 validator: (value) => value!.isEmpty ? 'Enter price' : null,
               ),
               TextFormField(
-                controller: _categoryController,
-                decoration: InputDecoration(labelText: 'Category'),
-                validator: (value) => value!.isEmpty ? 'Enter category' : null,
+                controller: _descriptionController,
+                decoration: InputDecoration(labelText: 'Description'),
+                validator: (value) =>
+                    value!.isEmpty ? 'Enter description' : null,
               ),
               TextFormField(
                 controller: _stockController,
                 decoration: InputDecoration(labelText: 'Stock'),
                 keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Enter stock quantity' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'Enter stock quantity' : null,
+              ),
+              SizedBox(height: 10),
+              DropdownButton<ProductCategory>(
+                value: _selectedCategory,
+                onChanged: (ProductCategory? newValue) {
+                  setState(() {
+                    _selectedCategory = newValue!;
+                  });
+                },
+                items: ProductCategory.values.map((ProductCategory category) {
+                  return DropdownMenuItem<ProductCategory>(
+                    value: category,
+                    child: Text(category.name
+                        .toUpperCase()), // Display name in uppercase
+                  );
+                }).toList(),
               ),
               SizedBox(height: 10),
               _selectedImage != null
@@ -106,7 +133,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: ()=> _uploadProduct(context),
+                onPressed: () => _uploadProduct(context),
                 child: Text("Add Product"),
               ),
             ],
