@@ -1,9 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:surwa/data/models/message.dart';
+import 'package:surwa/screens/chat_screen.dart';
 import 'package:surwa/services/message_service.dart';
 import 'package:surwa/services/profile_service.dart';
-import 'chat_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({Key? key}) : super(key: key);
@@ -12,11 +13,10 @@ class MessagesScreen extends StatefulWidget {
   _MessagesScreenState createState() => _MessagesScreenState();
 }
 
-class _MessagesScreenState extends State<MessagesScreen>
-    with SingleTickerProviderStateMixin {
+class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  ProfileService _profileService = ProfileService();
   final MessageService _messageService = MessageService();
-  final ProfileService _profileService = ProfileService();
   late String _currentUserId;
 
   @override
@@ -48,7 +48,9 @@ class _MessagesScreenState extends State<MessagesScreen>
         actions: [
           IconButton(
             icon: Icon(Icons.search),
-            onPressed: () {},
+            onPressed: () {
+              // Implement search functionality
+            },
           ),
         ],
         bottom: TabBar(
@@ -59,12 +61,12 @@ class _MessagesScreenState extends State<MessagesScreen>
             Tab(text: 'All'),
             Tab(
               child: StreamBuilder<List<Message>>(
-                stream: _messageService.getAllMessages(),
+                stream: _messageService.getRecentMessages(_currentUserId),
                 builder: (context, snapshot) {
                   int unreadCount = snapshot.hasData
                       ? snapshot.data!.where((message) => 
-                          message.toUserId == _currentUserId && 
-                          message.status != 'read').length
+                          message.receiverID == _currentUserId && 
+                          message.status != MessageStatus.read).length
                       : 0;
                   
                   return Row(
@@ -98,28 +100,80 @@ class _MessagesScreenState extends State<MessagesScreen>
     );
   }
 
+  Widget _buildEmptyStateWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.message_outlined,
+            size: 100,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: 16),
+          Text(
+            'No messages yet',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Start a conversation with your friends',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: Colors.green,
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading messages...',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAllMessagesList() {
     return StreamBuilder<List<Message>>(
-      stream: _messageService.getAllMessages(),
+      stream: _messageService.getRecentMessages(_currentUserId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildLoadingWidget();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return _buildEmptyStateWidget();
         }
 
         // Group messages by unique conversation partners
         Map<String, Message> uniqueConversations = {};
         for (var message in snapshot.data!) {
-          String otherUserId = message.fromUserId == _currentUserId 
-              ? message.toUserId 
-              : message.fromUserId;
+          String otherUserId = message.senderID == _currentUserId 
+              ? message.receiverID 
+              : message.senderID;
           
-          // Keep the most recent message for each conversation
-          if (!uniqueConversations.containsKey(otherUserId) || 
-              DateTime.parse(message.timeStamp).isAfter(
-                DateTime.parse(uniqueConversations[otherUserId]!.timeStamp)
-              )) {
-            uniqueConversations[otherUserId] = message;
-          }
+          uniqueConversations[otherUserId] = message;
         }
 
         return ListView.builder(
@@ -134,26 +188,24 @@ class _MessagesScreenState extends State<MessagesScreen>
                 return MessageUserTile(
                   user: MessageUser(
                     name: usernameSnapshot.data ?? 'Unknown User',
-                    lastMessage: lastMessage.message,
-                    time: _formatTime(lastMessage.timeStamp),
-                    isUnread: lastMessage.toUserId == _currentUserId && 
-                            lastMessage.status != 'read',
+                    lastMessage: lastMessage.content,
+                    time: _formatTime(lastMessage.dateCreated),
+                    isUnread: lastMessage.receiverID == _currentUserId && 
+                            lastMessage.status != MessageStatus.read,
                   ),
                   onTap: () {
-                    // Mark messages as read when conversation is opened
                     _markMessagesAsRead(otherUserId);
-                    
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ChatScreen(
                           user: Message(
-                            collectionId: '',
-                            fromUserId: _currentUserId,
-                            toUserId: otherUserId,
-                            message: '',
-                            status: '',
-                            timeStamp: '',
+                            messageID: '',
+                            senderID: _currentUserId,
+                            receiverID: otherUserId,
+                            content: '',
+                            status: MessageStatus.sent,
+                            dateCreated: Timestamp.now(),
                           ),
                         ),
                       ),
@@ -170,55 +222,61 @@ class _MessagesScreenState extends State<MessagesScreen>
 
   Widget _buildUnreadMessagesList() {
     return StreamBuilder<List<Message>>(
-      stream: _messageService.getAllMessages(),
+      stream: _messageService.getRecentMessages(_currentUserId),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildLoadingWidget();
+        }
+
         if (!snapshot.hasData) {
-          return Center(child: CircularProgressIndicator());
+          return _buildEmptyStateWidget();
         }
 
         // Filter unread messages
         List<Message> unreadMessages = snapshot.data!.where((message) => 
-          message.toUserId == _currentUserId && 
-          message.status != 'read'
+          message.receiverID == _currentUserId && 
+          message.status != MessageStatus.read
         ).toList();
+
+        if (unreadMessages.isEmpty) {
+          return _buildEmptyStateWidget();
+        }
 
         // Group unread messages by sender
         Map<String, Message> uniqueUnreadConversations = {};
         for (var message in unreadMessages) {
-          uniqueUnreadConversations[message.fromUserId] = message;
+          uniqueUnreadConversations[message.senderID] = message;
         }
 
         return ListView.builder(
           itemCount: uniqueUnreadConversations.length,
           itemBuilder: (context, index) {
-            String senderId = uniqueUnreadConversations.keys.elementAt(index);
-            Message lastMessage = uniqueUnreadConversations[senderId]!;
+            String otherUserId = uniqueUnreadConversations.keys.elementAt(index);
+            Message lastMessage = uniqueUnreadConversations[otherUserId]!;
             
             return FutureBuilder<String?>(
-              future: _profileService.getUsernameFromUserId(senderId),
+              future: _profileService.getUsernameFromUserId(otherUserId),
               builder: (context, usernameSnapshot) {
                 return MessageUserTile(
                   user: MessageUser(
                     name: usernameSnapshot.data ?? 'Unknown User',
-                    lastMessage: lastMessage.message,
-                    time: _formatTime(lastMessage.timeStamp),
+                    lastMessage: lastMessage.content,
+                    time: _formatTime(lastMessage.dateCreated),
                     isUnread: true,
                   ),
                   onTap: () {
-                    // Mark messages as read when conversation is opened
-                    _markMessagesAsRead(senderId);
-                    
+                    _markMessagesAsRead(otherUserId);
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ChatScreen(
                           user: Message(
-                            collectionId: '',
-                            fromUserId: _currentUserId,
-                            toUserId: senderId,
-                            message: '',
-                            status: '',
-                            timeStamp: '',
+                            messageID: '',
+                            senderID: _currentUserId,
+                            receiverID: otherUserId,
+                            content: '',
+                            status: MessageStatus.sent,
+                            dateCreated: Timestamp.now(),
                           ),
                         ),
                       ),
@@ -232,21 +290,38 @@ class _MessagesScreenState extends State<MessagesScreen>
       },
     );
   }
-
+  
   // Helper method to format timestamp
-  String _formatTime(String timestamp) {
+  String _formatTime(Timestamp timestamp) {
     try {
-      DateTime dateTime = DateTime.parse(timestamp);
+      DateTime dateTime = timestamp.toDate();
       return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } catch (e) {
+      print('Error formatting timestamp: $timestamp');
       return '';
     }
   }
 
   // Method to mark messages as read
   Future<void> _markMessagesAsRead(String otherUserId) async {
-    // TODO: Implement marking messages as read
-    // You might want to update the status of messages in the MessageService
+    // Get the chat ID
+    final chatId = _messageService.getChatId(_currentUserId, otherUserId);
+    
+    // Fetch messages for this chat
+    final messages = await _messageService
+        .getMessagesBetweenUsers(_currentUserId, otherUserId)
+        .first;
+    
+    // Update status for unread messages
+    for (var message in messages) {
+      if (message.receiverID == _currentUserId && message.status != MessageStatus.read) {
+        await _messageService.updateMessageStatus(
+          chatId: chatId, 
+          messageId: message.messageID, 
+          newStatus: MessageStatus.read
+        );
+      }
+    }
   }
 }
 
@@ -264,7 +339,6 @@ class MessageUser {
   });
 }
 
-// The MessageUserTile remains the same as in the previous implementation
 class MessageUserTile extends StatelessWidget {
   final MessageUser user;
   final VoidCallback onTap;

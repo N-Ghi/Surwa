@@ -1,40 +1,48 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+enum MessageStatus { sent, delivered, read }
+
 class Message {
-  final String collectionId;
-  final String fromUserId;
-  final String toUserId;
-  final String message;
-  final String status;
-  final String timeStamp;
+  final String messageID;
+  final String senderID;
+  final String receiverID;
+  final String content;
+  final MessageStatus status;
+  final Timestamp dateCreated;
 
   Message({
-    required this.collectionId,
-    required this.fromUserId,
-    required this.toUserId,
-    required this.message,
+    required this.messageID,
+    required this.senderID,
+    required this.receiverID,
+    required this.content,
     required this.status,
-    required this.timeStamp,
+    required this.dateCreated,
   });
 
-  // Convert Firestore DocumentSnapshot to Message Object
-  factory Message.fromFirestore(Map<String, dynamic> data, String docId) {
-    return Message(
-      collectionId: docId,
-      fromUserId: data['fromUserId'] ?? '',
-      toUserId: data['toUserId'] ?? '',
-      message: data['message'] ?? '',
-      status: data['status'] ?? '',
-      timeStamp: data['timeStamp'] ?? '',
-    );
+  // Convert Message object to a Map for Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'MessageID': messageID,
+      'SenderID': senderID,
+      'ReceiverID': receiverID,
+      'Content': content,
+      'Status': status.toString().split('.').last, // Store as a string
+      'DateCreated': dateCreated,
+    };
   }
 
-  // Convert Message Object to JSON for Firestore
-  Map<String, dynamic> toJson() {
-    return {
-      'fromUserId': fromUserId,
-      'toUserId': toUserId,
-      'message': message,
-      'status': status,
-      'timeStamp': timeStamp,
-    };
+  // Create a Message object from Firestore data
+  factory Message.fromMap(Map<String, dynamic> map) {
+    return Message(
+      messageID: map['MessageID'] ?? '',
+      senderID: map['SenderID'] ?? '',
+      receiverID: map['ReceiverID'] ?? '',
+      content: map['Content'] ?? '',
+      status: MessageStatus.values.firstWhere(
+        (e) => e.toString().split('.').last == map['Status'],
+        orElse: () => MessageStatus.sent, // Default status
+      ),
+      dateCreated: map['DateCreated'] ?? Timestamp.now(),
+    );
   }
 }

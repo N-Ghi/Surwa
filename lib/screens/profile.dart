@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:surwa/data/models/message.dart';
@@ -604,12 +605,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () {
                               // Create a Message object to pass to the ChatScreen
                               final message = Message(
-                                collectionId: '',
-                                fromUserId: FirebaseAuth.instance.currentUser!.uid, // Current user ID
-                                toUserId: _profile!.userId, // ID of the profile user you're messaging
-                                message: '', // Empty initially
-                                status: '', // Initial status
-                                timeStamp: '' // Initial timestamp
+                                messageID: '',
+                                senderID: FirebaseAuth.instance.currentUser!.uid, // Current user ID
+                                receiverID: _profile!.userId, // ID of the profile user you're messaging
+                                content: '', // Empty initially
+                                status: MessageStatus.sent, // Initial status
+                                dateCreated: Timestamp.fromDate(DateTime.now()), // Initial timestamp
                               );
 
                               // Navigate to the ChatScreen

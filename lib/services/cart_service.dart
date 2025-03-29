@@ -38,15 +38,16 @@ class CartService {
   // READ: Get Cart by Buyer ID
   Stream<List<Message>> getCartByBuyerId(String buyerId) {
     return cartCollection.where('buyerId', isEqualTo: buyerId).snapshots().map(
-       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
+        (QuerySnapshot snapshot){
+        return snapshot.docs.map(
         (doc){
-          return Message.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
+          return Message.fromMap(doc.data() as Map<String, dynamic>);
         }
-       ).toList();
+        ).toList();
       }
     );
   }
+
 
   // UPDATE: Update a Cart (e.g., update order list or total price)
   Future<void> updateCart(String cartId, List<String> newOrderIds, String newTotalPrice) {
