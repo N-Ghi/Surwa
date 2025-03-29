@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:surwa/data/DTOs/ProductDTO.dart';
+import 'package:surwa/screens/test_screens/PlaceOrder.dart';
 
 class SingleProductPage extends StatelessWidget {
+  final ProductDTO product;
+
+  const SingleProductPage({super.key, required this.product});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,18 +32,38 @@ class SingleProductPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hand Made Basket',
+              product.name,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             Text(
-              '5,000 Frw',
+              product.price,
               style: TextStyle(fontSize: 20, color: Colors.green),
+            ),
+            FittedBox(
+              fit: BoxFit.cover,
+              child: Image.network(
+                product.imageUrl,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.image_not_supported,
+                    size: 100,
+                    color: Colors.grey),
+              ),
             ),
             SizedBox(height: 10),
             Row(
               children: [
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: product.quantity > 0 ?  () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                OrderPage(productId: product.productId)));
+                  }:null,
                   child: Text('Buy'),
                 ),
               ],
@@ -49,8 +74,25 @@ class SingleProductPage extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              'The speaker unit contains a diaphragm that is precision-grown from NAC Audio bio-cellulose...',
+              product.description,
             ),
+             SizedBox(height: 10),
+            Text(
+              'Category',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              product.category,
+            ),
+             Text(
+              'Instock',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              product.quantity.toString(),
+            ),
+
+            
           ],
         ),
       ),

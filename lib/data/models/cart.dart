@@ -1,8 +1,11 @@
+import 'package:surwa/data/constants/cartStatus.dart';
+
 class Cart {
   final String cartId;
   final String buyerId;
   final List<String> orderIds;
   final String totalPrice;
+  final Cartstatus status;
   final String timeStamp;
 
   Cart({
@@ -10,6 +13,7 @@ class Cart {
     required this.buyerId,
     required this.orderIds,
     required this.totalPrice,
+    required this.status,
     required this.timeStamp,
   });
 
@@ -20,6 +24,7 @@ class Cart {
       buyerId: data['buyerId'] ?? '',
       orderIds: List<String>.from(data['orderIds'] ?? []),
       totalPrice: data['totalPrice'] ?? '',
+      status: parseStatus(data['status']),
       timeStamp: data['timeStamp'] ?? '',
     );
   }

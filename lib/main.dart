@@ -1,60 +1,76 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'screens/test_screens/profile.dart' as test_profile;
-import 'splash.dart';
-import 'login.dart' as login;
-import 'register.dart' as register;
-import 'forgot_password.dart';
-import 'profile.dart';
-import 'market.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:surwa/data/constants/constants.dart';
+import 'package:surwa/data/notifiers/auth_notifier.dart';
+import 'package:surwa/data/notifiers/notifiers.dart';
+import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
+import 'package:surwa/firebase_options.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:surwa/widgets/auth_wrap.dart';
 
-void main() {
-  runApp(const SurwaApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+
+  // Initialize Firebase
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Supabase with environment variables
+  await Supabase.initialize(
+    url: dotenv.env['supabaseUrl']!,
+    anonKey: dotenv.env['supabaseKey']!,
+  );
+
+  runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => ProfileCompletionNotifier()),
+          ChangeNotifierProvider(create: (context) => AuthNotifier()),
+        ],
+        child: MyApp(),
+      ),
+    );
 }
 
-class SurwaApp extends StatelessWidget {
-  const SurwaApp({super.key});
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    initThemeMode();
+    super.initState();
+  }
+
+  void initThemeMode() async{
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool? repeat = prefs.getBool(KConstants.themeModeKey);
+    isDarkModeNotifier.value = repeat ?? false;
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Surwa App',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFFFFD62C), // Yellow
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFFD62C),
-          primary: const Color(0xFFFFD62C),
-          secondary: const Color(0xFF009688), // Green for buttons
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide.none,
+    return ValueListenableBuilder(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDark, child) {
+        return MaterialApp(
+          title: 'SuRwa App',
+          theme: ThemeData(
+            primarySwatch: Colors.yellow,
+            brightness: isDark ? Brightness.dark : Brightness.light,
           ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-            backgroundColor: const Color(0xFF009688),
-            minimumSize: const Size(double.infinity, 50),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(25),
-            ),
-          ),
-        ),
-      ),
-      home: const SplashScreen(),
-      initialRoute: '/splash',
-      routes: {
-        '/splash': (context) => const SplashScreen(),
-        '/login': (context) => const login.LoginScreen(),
-        '/register': (context) => const register.RegisterScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/market': (context) => MarketScreen(),
-      },
-    );
+          debugShowCheckedModeBanner: false,
+          home: AuthWrapper(),
+        );
+      },);
   }
 }

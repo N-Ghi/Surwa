@@ -2,74 +2,94 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:surwa/data/models/message.dart';
 
 class MessageService {
-  final CollectionReference messageCollection =
-      FirebaseFirestore.instance.collection('Message');
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // CREATE: Add a new Message
-  Future<void> addMessage(Message message) async{
-    await messageCollection.add({
-      'fromUserId': message.fromUserId,  
-      'toUserId': message.toUserId,      
-      'message': message.message,        
-      'status': message.status,          
-      'timestamp': FieldValue.serverTimestamp(),
+  // Generate a unique chatId based on both user IDs
+  String _getChatId(String fromUserId, String toUserId) {
+    return fromUserId.compareTo(toUserId) > 0 
+      ? '$fromUserId-$toUserId' 
+      : '$toUserId-$fromUserId';
+  }
+
+  // CREATE: Add a new Message to a specific chat
+  Future<void> addMessage(Message message) async {
+    final chatId = _getChatId(message.fromUserId, message.toUserId);
+
+    await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .add(message.toJson());
+  }
+
+  // READ: Get messages for a specific chat between two users
+  Stream<List<Message>> getMessagesBetweenUsers(String user1Id, String user2Id) {
+    final chatId = _getChatId(user1Id, user2Id);
+
+    return _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('timeStamp', descending: false)
+        .snapshots()
+        .map((QuerySnapshot snapshot) {
+      return snapshot.docs.map((doc) {
+        return Message.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
     });
   }
 
-  // READ: Fetch all Messages
-  Stream<List<Message>> getMessages() {
-    return messageCollection.orderBy('timestamp', descending: true).snapshots().map(
-       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
-        (doc){
-          return Message.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
-        }
-       ).toList();
-      }
-    );
-  }
-
-  // READ: Get a Message by ID
-  Future<Message> getMessageById(String messageId) async{
-    DocumentSnapshot doc = await messageCollection.doc(messageId).get();
-    return Message.fromFirestore(doc.data() as Map<String,dynamic>, doc.id);
-  }
-
-  // READ: Get Messages by From User ID
-  Stream<List<Message>> getMessagesByFromUserId(String fromUserId) {
-    return messageCollection.where('fromUserId', isEqualTo: fromUserId).snapshots().map(
-       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
-        (doc){
-          return Message.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
-        }
-       ).toList();
-      }
-    );
-  }
-
-  // READ: Get Messages by To User ID
-  Stream<List<Message>> getMessagesByToUserId(String toUserId) {
-    return messageCollection.where('toUserId', isEqualTo: toUserId).snapshots().map(
-       (QuerySnapshot snapshot){
-       return snapshot.docs.map(
-        (doc){
-          return Message.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
-        }
-       ).toList();
-      }
-    );
-  }
-
-  // UPDATE: Update a Message (e.g., change status)
-  Future<void> updateMessage(String messageId, String newStatus) {
-    return messageCollection.doc(messageId).update({
-      'status': newStatus,  // Change message status (Sent, Read)
+  // READ: Get all messages across all chats (might be useful for admin or debugging)
+  Stream<List<Message>> getAllMessages() {
+    return _firestore
+        .collectionGroup('messages')
+        .orderBy('timeStamp', descending: true)
+        .snapshots()
+        .map((QuerySnapshot snapshot) {
+      return snapshot.docs.map((doc) {
+        return Message.fromFirestore(doc.data() as Map<String, dynamic>, doc.id);
+      }).toList();
     });
   }
 
-  // DELETE: Remove a Message
-  Future<void> deleteMessage(String messageId) {
-    return messageCollection.doc(messageId).delete();
+  // UPDATE: Update message status (e.g., from 'sent' to 'read')
+  Future<void> updateMessageStatus(String chatId, String messageId, String newStatus) async {
+    await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+          'status': newStatus,
+        });
+  }
+
+  // DELETE: Delete a specific message
+  Future<void> deleteMessage(String fromUserId, String toUserId, String messageId) async {
+    final chatId = _getChatId(fromUserId, toUserId);
+
+    await _firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .delete();
+  }
+
+  // GET: Get recent chats for a user
+  Stream<List<Map<String, dynamic>>> getRecentChats(String currentUserId) {
+    return _firestore
+        .collection('chats')
+        .where('participants', arrayContains: currentUserId)
+        .snapshots()
+        .map((QuerySnapshot snapshot) {
+      return snapshot.docs.map((doc) {
+        return {
+          'chatId': doc.id,
+          'participants': doc['participants'],
+          // You might want to add more metadata about the chat
+        };
+      }).toList();
+    });
   }
 }

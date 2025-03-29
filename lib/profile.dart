@@ -1,26 +1,7 @@
 import 'package:flutter/material.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
-  @override
-  _ProfileScreenState createState() => _ProfileScreenState();
-}
-
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +11,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         title: Row(
           children: [
             Text(
-              'patrick',
+              'Khalid_Sipiriyani',
               style: TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.bold,
@@ -56,12 +37,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               children: [
                 CircleAvatar(
                   radius: 40,
-                  // Use NetworkImage or File Image if from a file
-                  backgroundImage: AssetImage('assets/images/patrickprofile.jpg'),
-                  // Add error handling for image loading
-                  onBackgroundImageError: (exception, stackTrace) {
-                    print('Error loading image: $exception');
-                  },
+                  backgroundImage: AssetImage('assets/profile_picture.png'),
                 ),
                 SizedBox(width: 24),
                 Expanded(
@@ -102,53 +78,24 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
           ),
           SizedBox(height: 16),
-          // Tabs for Posts, Likes, and Tags
-          TabBar(
-            controller: _tabController,
-            indicatorColor: Colors.green,
-            labelColor: Colors.green,
-            unselectedLabelColor: Colors.black,
-            tabs: [
-              Tab(icon: Icon(Icons.grid_on)),
-              Tab(icon: Icon(Icons.favorite_border)),
-              Tab(icon: Icon(Icons.bookmark_border)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildActionButton(Icons.grid_on, Colors.green),
+              _buildActionButton(Icons.favorite_border, Colors.black),
+              _buildActionButton(Icons.bookmark_border, Colors.black),
             ],
           ),
+          Divider(),
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Posts Tab
-                Center(
-                  child: Text(
-                    "You don't have any posts yet..",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                  ),
+            child: Center(
+              child: Text(
+                "You don't have any posts yet..",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
                 ),
-                // Likes Tab
-                Center(
-                  child: Text(
-                    "No liked posts",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                // Tags Tab
-                Center(
-                  child: Text(
-                    "No tagged posts",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -173,6 +120,22 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildActionButton(IconData icon, Color color) {
+    return Container(
+      width: 120,
+      height: 36,
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: color == Colors.green ? color : Colors.transparent,
+            width: 2,
+          ),
+        ),
+      ),
+      child: Icon(icon, color: color),
     );
   }
 }
