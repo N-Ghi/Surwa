@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:surwa/data/models/message.dart';
 import 'package:surwa/screens/chat_screen.dart';
-import 'package:surwa/screens/test_screens/create_user.dart';
-import 'package:surwa/screens/test_screens/login_page.dart';
-import 'package:surwa/screens/test_screens/settings.dart';
+import 'package:surwa/screens/complete_profile.dart';
+import 'package:surwa/screens/login.dart';
+import 'package:surwa/screens/settings.dart';
 import 'package:surwa/services/auth_service.dart';
 import 'package:surwa/services/profile_service.dart';
 import 'package:surwa/services/post_service.dart';
@@ -82,7 +82,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _following = await _profileService.getFollowing(_profile!.userId);
       }
     } catch (e) {
-      print("Error loading profile: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading profile')),
       );
@@ -430,7 +429,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (_isCurrentUserProfile)
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfileTestScreen()));
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => CompleteProfile()));
                   },
                   child: Icon(Icons.add),
                 ),
@@ -603,6 +602,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           SizedBox(width: 8),
                           OutlinedButton(
                             onPressed: () {
+                              if (_profile!.userId == _currentUser!.uid) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text("You can't message yourself")),
+                                );
+                                return;
+                              }
                               // Create a Message object to pass to the ChatScreen
                               final message = Message(
                                 messageID: '',
@@ -645,7 +650,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: IconButton(
                         icon: Icon(Icons.grid_on),
                         onPressed: () {},
-                        color: Theme.of(context).primaryColor,
+                        // color: Theme.of(context).primaryColor,
                       ),
                     ),
                     Expanded(

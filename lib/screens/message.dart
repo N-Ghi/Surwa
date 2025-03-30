@@ -155,43 +155,55 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   }
 
   Widget _buildAllMessagesList() {
-    return StreamBuilder<List<Message>>(
-      stream: _messageService.getRecentMessages(_currentUserId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingWidget();
-        }
+    return StreamBuilder<List<ChatPreview>>(
+    stream: _messageService.getUserChatPreviews(_currentUserId),
+    builder: (context, snapshot) {
 
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyStateWidget();
-        }
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return _buildLoadingWidget();
+      }
 
-        // Group messages by unique conversation partners
-        Map<String, Message> uniqueConversations = {};
-        for (var message in snapshot.data!) {
-          String otherUserId = message.senderID == _currentUserId 
-              ? message.receiverID 
-              : message.senderID;
-          
-          uniqueConversations[otherUserId] = message;
-        }
+      // Changed condition to be more explicit
+      if (snapshot.hasError) {
+        return Center(child: Text("Error loading messages"));
+      }
+      
+      if (!snapshot.hasData) {
+        return _buildLoadingWidget(); // Show loading instead if empty
+      }
+      
+      List<ChatPreview> chatPreviews = snapshot.data!;
+      
+      if (chatPreviews.isEmpty) {
+        return _buildEmptyStateWidget();
+      }
 
         return ListView.builder(
-          itemCount: uniqueConversations.length,
+          itemCount: chatPreviews.length,
           itemBuilder: (context, index) {
-            String otherUserId = uniqueConversations.keys.elementAt(index);
-            Message lastMessage = uniqueConversations[otherUserId]!;
+            ChatPreview preview = chatPreviews[index];
             
+            // Find the other user ID (not the current user)
+            String otherUserId = preview.participants.firstWhere(
+              (id) => id != _currentUserId,
+              orElse: () => "Unknown", // Fallback in case of group chats or errors
+            );
+
             return FutureBuilder<String?>(
               future: _profileService.getUsernameFromUserId(otherUserId),
               builder: (context, usernameSnapshot) {
+                bool isUnread = preview.lastMessage != null && 
+                    preview.lastMessage!.receiverID == _currentUserId &&
+                    preview.lastMessage!.status != MessageStatus.read;
+                
                 return MessageUserTile(
                   user: MessageUser(
                     name: usernameSnapshot.data ?? 'Unknown User',
-                    lastMessage: lastMessage.content,
-                    time: _formatTime(lastMessage.dateCreated),
-                    isUnread: lastMessage.receiverID == _currentUserId && 
-                            lastMessage.status != MessageStatus.read,
+                    lastMessage: preview.lastMessage?.content ?? 'No messages yet',
+                    time: preview.lastMessage != null 
+                        ? _formatTime(preview.lastMessage!.dateCreated) 
+                        : '',
+                    isUnread: isUnread,
                   ),
                   onTap: () {
                     _markMessagesAsRead(otherUserId);
@@ -221,47 +233,49 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   }
 
   Widget _buildUnreadMessagesList() {
-    return StreamBuilder<List<Message>>(
-      stream: _messageService.getRecentMessages(_currentUserId),
+    return StreamBuilder<List<ChatPreview>>(
+      stream: _messageService.getUserChatPreviews(_currentUserId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildLoadingWidget();
         }
 
-        if (!snapshot.hasData) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return _buildEmptyStateWidget();
         }
 
-        // Filter unread messages
-        List<Message> unreadMessages = snapshot.data!.where((message) => 
-          message.receiverID == _currentUserId && 
-          message.status != MessageStatus.read
-        ).toList();
+        // Filter chats with unread messages
+        List<ChatPreview> unreadChatPreviews = snapshot.data!.where((preview) {
+          return preview.lastMessage != null &&
+              preview.lastMessage!.receiverID == _currentUserId &&
+              preview.lastMessage!.status != MessageStatus.read;
+        }).toList();
 
-        if (unreadMessages.isEmpty) {
+        if (unreadChatPreviews.isEmpty) {
           return _buildEmptyStateWidget();
-        }
-
-        // Group unread messages by sender
-        Map<String, Message> uniqueUnreadConversations = {};
-        for (var message in unreadMessages) {
-          uniqueUnreadConversations[message.senderID] = message;
         }
 
         return ListView.builder(
-          itemCount: uniqueUnreadConversations.length,
+          itemCount: unreadChatPreviews.length,
           itemBuilder: (context, index) {
-            String otherUserId = uniqueUnreadConversations.keys.elementAt(index);
-            Message lastMessage = uniqueUnreadConversations[otherUserId]!;
+            ChatPreview preview = unreadChatPreviews[index];
             
+            // Find the other user ID (not the current user)
+            String otherUserId = preview.participants.firstWhere(
+              (id) => id != _currentUserId,
+              orElse: () => "Unknown", // Fallback in case of group chats or errors
+            );
+
             return FutureBuilder<String?>(
               future: _profileService.getUsernameFromUserId(otherUserId),
               builder: (context, usernameSnapshot) {
                 return MessageUserTile(
                   user: MessageUser(
                     name: usernameSnapshot.data ?? 'Unknown User',
-                    lastMessage: lastMessage.content,
-                    time: _formatTime(lastMessage.dateCreated),
+                    lastMessage: preview.lastMessage?.content ?? '',
+                    time: preview.lastMessage != null 
+                        ? _formatTime(preview.lastMessage!.dateCreated) 
+                        : '',
                     isUnread: true,
                   ),
                   onTap: () {
@@ -297,7 +311,6 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
       DateTime dateTime = timestamp.toDate();
       return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      print('Error formatting timestamp: $timestamp');
       return '';
     }
   }
@@ -324,21 +337,6 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
     }
   }
 }
-
-class MessageUser {
-  final String name;
-  final String lastMessage;
-  final String time;
-  bool isUnread;
-
-  MessageUser({
-    required this.name,
-    required this.lastMessage,
-    required this.time,
-    this.isUnread = false,
-  });
-}
-
 class MessageUserTile extends StatelessWidget {
   final MessageUser user;
   final VoidCallback onTap;
@@ -357,7 +355,7 @@ class MessageUserTile extends StatelessWidget {
         user.name,
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          color: user.isUnread ? Colors.black : Colors.grey,
+          color: user.isUnread ? Colors.green[300] : Colors.grey,
         ),
       ),
       subtitle: Text(
@@ -365,7 +363,7 @@ class MessageUserTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: user.isUnread ? Colors.black : Colors.grey,
+          color: user.isUnread ? Colors.green[300] : Colors.grey,
           fontWeight: user.isUnread ? FontWeight.bold : FontWeight.normal,
         ),
       ),

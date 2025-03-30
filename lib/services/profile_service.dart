@@ -5,6 +5,7 @@
   import 'package:supabase_flutter/supabase_flutter.dart';
   import 'package:surwa/services/image_picker_service.dart';
   import 'package:surwa/data/models/profile.dart'; 
+  import 'package:shared_preferences/shared_preferences.dart';
 
   class ProfileService {
 
@@ -42,7 +43,6 @@
       // Upload image if provided
       if (imageFile != null) {
         profilePictureUrl = await imagePickerService.uploadProfileImage( imageFile, currentUser!.uid);
-        print("Profile picture URL: $profilePictureUrl");
       }
 
       // Update profile object with image URL and current user ID
@@ -50,6 +50,7 @@
         userId: currentUser!.uid, // Store the Firebase Auth UID
         username: profile.username,
         name: profile.name,
+        lowercase_username: profile.username.toLowerCase(),
         profilePicture: profilePictureUrl ?? '',
         role: profile.role,
         followers: profile.followers,
@@ -65,10 +66,8 @@
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      print("Profile created successfully!");
       return null;  // Success, no error message
     } catch (e) {
-      print("Error creating profile: $e");
       return 'Error: ${e.toString()}';  // Return error message
     }
   }
@@ -87,7 +86,6 @@
       }
       return null;
     } catch (e) {
-      print("Error getting username: $e");
       return null;
     }
   }
@@ -106,7 +104,6 @@
       }
       return null;
     } catch (e) {
-      print("Error getting userId from username: $e");
       return null;
     }
   }
@@ -121,7 +118,6 @@
       }
       return null;
     } catch (e) {
-      print("Error getting username from userId: $e");
       return null;
     }
   }
@@ -130,7 +126,8 @@
   Future<Profile?> getLoggedInUserProfile() async {
     try {
       if (currentUser == null) return null;
-      
+
+      debugSharedPreferences();
       String userId = currentUser!.uid;
       DocumentSnapshot doc = await profileCollection.doc(userId).get();
       
@@ -139,7 +136,6 @@
       }
       return null;
     } catch (e) {
-      print("Error retrieving profile: $e");
       return null;
     }
   }
@@ -170,7 +166,6 @@
       DocumentSnapshot doc = await profileCollection.doc(userId).get();
       return doc.exists; // Return true if profile exists
     } catch (e) {
-      print("Error checking profile: $e");
       return false;
     }
   }
@@ -239,7 +234,6 @@
             throw Exception('Failed to upload profile picture');
           }
         } catch (e) {
-          print('Profile picture update failed: $e');
           return 'Error uploading profile picture: ${e.toString()}';
         }
       }
@@ -247,12 +241,8 @@
       if (profileUpdates.isNotEmpty) {
         await profileCollection.doc(userId).update(profileUpdates);
       }
-
-      print("Profile updated successfully!");
-
       return null; // Success, no error message needed
     } catch (e) {
-      print("Error updating profile: $e");
       return 'Error: ${e.toString()}';
     }
   }
@@ -260,8 +250,6 @@
   // Get a user profile by username
   Future<Profile?> getProfileByUsername(String username) async {
     try {
-      print("Searching for profile with username: $username");
-      
       // First, try the direct query on Profile collection
       QuerySnapshot profileQuery = await profileCollection
           .where('username', isEqualTo: username)
@@ -269,7 +257,6 @@
           .get();
       
       if (profileQuery.docs.isNotEmpty) {
-        print("Found profile directly in Profile collection");
         return Profile.fromMap(profileQuery.docs.first.data() as Map<String, dynamic>);
       }
       
@@ -280,24 +267,18 @@
           .get();
       
       if (userMapQuery.docs.isEmpty) {
-        print("Username not found in UserMap collection");
         return null;
       }
       
       String userId = userMapQuery.docs.first['userId'] as String;
-      print("Found userId: $userId for username: $username");
-      
       DocumentSnapshot profileDoc = await profileCollection.doc(userId).get();
       
       if (!profileDoc.exists) {
-        print("Profile document doesn't exist for userId: $userId");
         return null;
       }
       
-      print("Successfully retrieved profile for username: $username");
       return Profile.fromMap(profileDoc.data() as Map<String, dynamic>);
     } catch (e) {
-      print("Error getting profile by username: $e");
       return null;
     }
   }
@@ -319,19 +300,20 @@
         return [];
       }
       
-      // Query Firestore for usernames containing the search string
+      // Convert search query to lowercase
+      final lowercaseQuery = searchQuery.toLowerCase();
+      
+      // Query using the lowercase_username field
       final querySnapshot = await profileCollection
-          .where('username', isGreaterThanOrEqualTo: searchQuery)
-          .where('username', isLessThanOrEqualTo: '$searchQuery\uf8ff') // Unicode character for range queries
+          .where('lowercase_username', isGreaterThanOrEqualTo: lowercaseQuery)
+          .where('lowercase_username', isLessThanOrEqualTo: '$lowercaseQuery\uf8ff')
           .limit(limit)
           .get();
 
-      // Convert documents to Profile objects
       return querySnapshot.docs
           .map((doc) => Profile.fromMap(doc.data() as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print("Error searching users: $e");
       return [];
     }
   }
@@ -362,7 +344,6 @@
       
       return profiles;
     } catch (e) {
-      print("Error getting profiles by usernames: $e");
       return [];
     }
   }
@@ -396,7 +377,6 @@
       List<dynamic> followers = data['followers'] ?? [];
       return followers.contains(currentUser?.uid);
     } catch (e) {
-      print("Error checking profile visibility: $e");
       return false;
     }
   }
@@ -449,7 +429,6 @@
       
       return true;
     } catch (e) {
-      print("Error following user: $e");
       return false;
     }
   }
@@ -502,7 +481,6 @@
       
       return true;
     } catch (e) {
-      print("Error unfollowing user: $e");
       return false;
     }
   }
@@ -524,7 +502,6 @@
       
       return following.contains(targetUserId);
     } catch (e) {
-      print("Error checking follow status: $e");
       return false;
     }
   }
@@ -546,8 +523,6 @@
       
       List<Profile> followers = [];
       
-      // Firebase limitations prevent using 'whereIn' with large arrays,
-      // so we'll use batched queries
       for (int i = 0; i < followerIds.length; i += 10) {
         int end = (i + 10 < followerIds.length) ? i + 10 : followerIds.length;
         List<String> batch = followerIds.sublist(i, end);
@@ -563,7 +538,6 @@
       
       return followers;
     } catch (e) {
-      print("Error getting followers: $e");
       return [];
     }
   }
@@ -585,8 +559,6 @@
       
       List<Profile> following = [];
       
-      // Firebase limitations prevent using 'whereIn' with large arrays,
-      // so we'll use batched queries
       for (int i = 0; i < followingIds.length; i += 10) {
         int end = (i + 10 < followingIds.length) ? i + 10 : followingIds.length;
         List<String> batch = followingIds.sublist(i, end);
@@ -602,8 +574,17 @@
       
       return following;
     } catch (e) {
-      print("Error getting following: $e");
       return [];
     }
   }
+
+
+void debugSharedPreferences() async {
+  print("Debugging SharedPreferences:");
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  prefs.getKeys().forEach((key) {
+    print('$key: ${prefs.get(key)}');
+  });
+}
+
 }

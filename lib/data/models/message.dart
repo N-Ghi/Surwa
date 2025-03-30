@@ -46,3 +46,31 @@ class Message {
     );
   }
 }
+
+class ChatPreview {
+  final String chatId;
+  final List<String> participants;
+  final Message? lastMessage;
+  final Timestamp lastUpdated;
+
+  ChatPreview({
+    required this.chatId,
+    required this.participants,
+    this.lastMessage,
+    required this.lastUpdated,
+  });
+}
+
+class MessageUser {
+  final String name;
+  final String lastMessage;
+  final String time;
+  bool isUnread;
+
+  MessageUser({
+    required this.name,
+    required this.lastMessage,
+    required this.time,
+    this.isUnread = false,
+  });
+}

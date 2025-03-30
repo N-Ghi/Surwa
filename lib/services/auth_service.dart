@@ -60,10 +60,27 @@ class AuthService {
     }
   }
 
-  Future<void> signOut(AuthNotifier authNotifier) async {
+  Future<void> signOut(AuthNotifier authNotifier, BuildContext context) async {
+  try {
+    // Get ProfileCompletionNotifier from provider
+    final profileCompletionNotifier = Provider.of<ProfileCompletionNotifier>(
+      context, 
+      listen: false
+    );
+    
+    // Clear saved profile completion status before signing out
+    await profileCompletionNotifier.clearSavedStatus();
+    
+    // Sign out from Firebase
     await _auth.signOut();
-    authNotifier.notifyListeners(); // Notify UI
+    
+    // Notify UI about authentication state change
+    authNotifier.notifyListeners();
+  } catch (e) {
+    print("Error during sign out: $e");
+    // You might want to show a snackbar or other error notification here
   }
+}
 
   Future<void> resetPassword(String email) async {
     await _auth.sendPasswordResetEmail(email: email);

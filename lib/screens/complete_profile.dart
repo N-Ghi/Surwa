@@ -46,6 +46,7 @@ Future<void> _createProfile() async {
     userId: "", // Will be updated in ProfileService
     username: _usernameController.text.trim(),
     name: _nameController.text.trim(),
+    lowercase_username: '', // Will be updated in ProfileService
     profilePicture: '', // Will be updated in ProfileService
     role: role!, // Safe to use ! because we checked for null above
     followers: [],
@@ -73,6 +74,7 @@ Future<void> _createProfile() async {
       SnackBar(content: Text("Error creating profile: $e")),
     );
   }
+  _clearForm();
 }
   void _clearForm() {
     _usernameController.clear();
@@ -93,8 +95,14 @@ Future<void> _createProfile() async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              FittedBox(child: Image(image: AssetImage("assets/images/surwa_logo.png"))),
-              SizedBox(height: 16),
+                Center(
+                  child: Image.asset(
+                    'assets/images/surwa_logo.png',
+                    width: MediaQuery.of(context).size.width * 0.7, // Responsive width
+                    height: 200, // Fixed height, but you can make this responsive too
+                    fit: BoxFit.contain,
+                  ),
+                ),              SizedBox(height: 16),
               Text(
                 "Complete Profile",
                 textAlign: TextAlign.center,

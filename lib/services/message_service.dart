@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:surwa/data/models/message.dart';
+import 'package:surwa/services/id_randomizer.dart';
 
 class MessageService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -10,29 +11,34 @@ class MessageService {
       : '$receiverID-$senderID';
   }
 
+  // Add a message to the database
   Future<bool> addMessage(Message message) async {
     final chatId = getChatId(message.senderID, message.receiverID);
+    final String messageID = message.messageID.isEmpty 
+          ? generateRandomId()
+          : message.messageID;
 
     try {
-      // First, ensure the chat document exists with the correct participants
+      // Ensure the chat document exists with the correct participants
       await _firestore.collection('chats').doc(chatId).set({
-        'participants': [message.senderID, message.receiverID],
-        'lastUpdated': FieldValue.serverTimestamp(),
+        'Participants': [message.senderID, message.receiverID],
+        'LastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));  // Using merge to avoid overwriting existing data
       
-      // Then add the message to the messages subcollection
+      // Add the message to the messages subcollection
       await _firestore
           .collection('chats')
           .doc(chatId)
           .collection('messages')
-          .add(message.toMap());
+          .doc(messageID)  // Use the message's ID as the document ID
+          .set(message.toMap());   // Using set instead of add to respect the messageID
       return true;
     } catch (e) {
-      print('Error adding message: $e');
       return false;
     }
   }
   
+  // Get messages between two users
   Stream<List<Message>> getMessagesBetweenUsers(String user1Id, String user2Id) {
     final chatId = getChatId(user1Id, user2Id);
 
@@ -48,7 +54,8 @@ class MessageService {
       }).toList();
     });
   }
-
+  
+  // Get all messages
   Stream<List<Message>> getAllMessages() {
     return _firestore
         .collectionGroup('messages')
@@ -60,22 +67,41 @@ class MessageService {
       }).toList();
     });
   }
-
-  Stream<List<Map<String, dynamic>>> getUserChats(String userId) {
+  
+  // Get all chats for a user
+  Stream<List<Message>> getUserChats(String userId) {
     return _firestore
         .collection('chats')
-        .where('participants', arrayContains: userId)
+        .where('participants', arrayContains: userId)  // Only get chats where user is a participant
         .snapshots()
-        .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return {
-          'chatId': doc.id,
-          'participants': doc['participants'],
-        };
-      }).toList();
+        .asyncMap((snapshot) async {
+      List<Message> latestMessages = [];
+
+      for (var doc in snapshot.docs) {
+        var chatId = doc.id;
+        // Get the last message in this chat regardless of sender/receiver
+        var lastMessageSnapshot = await _firestore
+            .collection('chats')
+            .doc(chatId)
+            .collection('messages')
+            .orderBy('DateCreated', descending: true)
+            .limit(1)
+            .get();
+
+        if (lastMessageSnapshot.docs.isNotEmpty) {
+          var messageData = lastMessageSnapshot.docs.first.data();
+          // Add chat ID to the message data for reference
+          messageData['chatId'] = chatId;
+          latestMessages.add(Message.fromMap(messageData));
+        } else {
+          print('No messages found for chat $chatId');
+        }
+      }
+      return latestMessages;
     });
   }
 
+  // Update message status
   Future<bool> updateMessageStatus({
     required String chatId, 
     required String messageId, 
@@ -90,11 +116,11 @@ class MessageService {
           .update({'Status': newStatus.toString().split('.').last});
       return true;
     } catch (e) {
-      print('Error updating message status: $e');
       return false;
     }
   }
 
+  // Delete a message
   Future<bool> deleteMessage({
     required String senderID, 
     required String receiverID, 
@@ -111,15 +137,15 @@ class MessageService {
           .delete();
       return true;
     } catch (e) {
-      print('Error deleting message: $e');
       return false;
     }
   }
 
+  // Get recent messages
   Stream<List<Message>> getRecentMessages(String currentUserId) {
     return _firestore
         .collection('chats')
-        .where('participants', arrayContains: currentUserId)
+        .where('Participants', arrayContains: currentUserId)
         .snapshots()
         .asyncMap((snapshot) async {
       final recentMessages = <Message>[];
@@ -140,6 +166,49 @@ class MessageService {
       }
       
       return recentMessages;
+    });
+  }
+
+// Function to get chat previews for the UI
+  Stream<List<ChatPreview>> getUserChatPreviews(String userId) {
+    return _firestore
+        .collection('chats')
+        .where('Participants', arrayContains: userId)
+        .orderBy('LastUpdated', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<ChatPreview> chatPreviews = [];
+
+      for (var doc in snapshot.docs) {
+        var chatId = doc.id;
+        var chatData = doc.data();
+        List<String> participants = List<String>.from(chatData['Participants'] ?? []);
+        Timestamp lastUpdated = chatData['LastUpdated'] ?? Timestamp.now();
+        
+        // Get the last message in this chat
+        var lastMessageSnapshot = await _firestore
+            .collection('chats')
+            .doc(chatId)
+            .collection('messages')
+            .orderBy('DateCreated', descending: true)
+            .limit(1)
+            .get();
+
+        Message? lastMessage;
+        if (lastMessageSnapshot.docs.isNotEmpty) {
+          var messageData = lastMessageSnapshot.docs.first.data();
+          lastMessage = Message.fromMap(messageData);
+        } else {
+          print('No messages found for chat $chatId');
+        }
+        chatPreviews.add(ChatPreview(
+          chatId: chatId,
+          participants: participants,
+          lastMessage: lastMessage,
+          lastUpdated: lastUpdated,
+        ));
+      }
+      return chatPreviews;
     });
   }
 }

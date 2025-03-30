@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 import 'package:surwa/screens/complete_profile.dart';
 import 'package:surwa/screens/feeds.dart';
-import 'package:surwa/screens/test_screens/create_user.dart';
-import 'package:surwa/screens/test_screens/dashboard.dart';
 import 'package:surwa/screens/login.dart';
 
 class AuthWrapper extends StatelessWidget {
@@ -20,21 +18,17 @@ class AuthWrapper extends StatelessWidget {
       print("User not logged in");
       return LoginScreen();
     } else {
-      // User logged in, check both profile completion and database existence
+      // User logged in, check profile completion from SharedPreferences first
       return Consumer<ProfileCompletionNotifier>(
         builder: (context, profileNotifier, _) {
-          // Check if we need to load the profile data
+          // Initialize from shared preferences if not done already
           if (!profileNotifier.hasCheckedProfile) {
-            // Trigger the check only once
+            // Trigger the initialization only once
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              profileNotifier.checkProfileCompletion(onUserNotFound: () {
-                // User document doesn't exist in database, sign them out
-                print("User document doesn't exist in database");
-                FirebaseAuth.instance.signOut();
-              });
+              profileNotifier.initialize();
             });
             
-            print("Checking profile completion...");
+            print("Loading profile info...");
             return Scaffold(
               body: Center(
                 child: Column(
@@ -42,14 +36,14 @@ class AuthWrapper extends StatelessWidget {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 20),
-                    Text("Checking profile completion..."),
+                    Text("Loading profile..."),
                   ],
                 ),
               ),
             );
           }
           
-          print("Profile completion checked");
+          print("Profile check complete: ${profileNotifier.isProfileComplete}");
           return profileNotifier.isProfileComplete ? DashboardScreen() : CompleteProfile();
         },
       );

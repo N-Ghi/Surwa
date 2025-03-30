@@ -41,15 +41,14 @@ class _ProfileSearchState extends State<ProfileSearch> {
     });
 
     try {
-      // Use the service method to search users
-      final profiles = await _profileService.searchUsersByUsername(query);
+      // Use the service method to search users - this will now use case-insensitive search
+      final profiles = await _profileService.searchUsersByUsername(query.toLowerCase());
 
       setState(() {
         _searchResults = profiles;
         _isSearching = false;
       });
     } catch (e) {
-      print("Error searching profiles: $e");
       setState(() {
         _isSearching = false;
       });

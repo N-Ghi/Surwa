@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:surwa/screens/complete_profile.dart';
 import 'package:surwa/screens/forgot_password.dart';
 import 'package:surwa/screens/register.dart';
-
 import 'package:provider/provider.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
-import 'package:surwa/screens/test_screens/create_user.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/services/auth_service.dart';
@@ -41,8 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = null;
     });
 
-    print('Logging in...'); // Debug message
-
     // Call AuthService to sign in the user
     String? result = await authService.signInWithEmail(
       _emailController.text.trim(),
@@ -57,20 +53,16 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (result == null) {
-      print('Login successful!'); // Debug message
-
       // Check profile completion after successful login
       await profileCompletionNotifier.checkProfileCompletion();
 
       // Navigate to HomeScreen if the profile is complete
       if (profileCompletionNotifier.isProfileComplete) {
-        print('Profile is complete. Navigating to Dashboard...'); // Debug message
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => DashboardScreen()),
         );
       } else {
-        print('Profile is not complete. Navigating to CompleteProfile...'); // Debug message
         // If the profile is not complete, redirect to Profile Completion Screen
         Navigator.pushReplacement(
           context,
