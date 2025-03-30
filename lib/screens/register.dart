@@ -116,14 +116,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Register',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -132,6 +124,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Center(
+                  child: Image.asset(
+                    'assets/images/surwa_logo.png',
+                    width: MediaQuery.of(context).size.width * 0.7, // Responsive width
+                    height: 200, // Fixed height, but you can make this responsive too
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    "Register",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 9),
                 TextField(
                   style: TextStyle(
                     fontSize: 16,
@@ -157,7 +169,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 TextField(
                   style: TextStyle(
                     fontSize: 16,
@@ -204,7 +216,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     color: Colors.black54,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 TextField(
                   style: TextStyle(
                     fontSize: 16,
@@ -243,7 +255,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 Center(
                   child: RichText(
                     textAlign: TextAlign.center,
@@ -271,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

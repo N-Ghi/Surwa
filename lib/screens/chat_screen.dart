@@ -32,12 +32,12 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_messageController.text.trim().isEmpty) return;
 
     final message = Message(
-      collectionId: '',
-      fromUserId: _currentUserId,
-      toUserId: widget.user.toUserId,
-      message: _messageController.text,
-      status: 'sent', 
-      timeStamp: DateTime.now().toIso8601String(),
+      messageID: '',
+      senderID: _currentUserId,
+      receiverID: widget.user.receiverID,
+      content: _messageController.text,
+      status: MessageStatus.sent,
+      dateCreated: Timestamp.now(),
     );
 
     // Add the message using MessageService
@@ -59,7 +59,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: FutureBuilder<String>(
-          future: _getUsername(widget.user.toUserId),
+          future: _getUsername(widget.user.receiverID),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Text('Loading...');
@@ -80,7 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<Message>>(
-              stream: _messageService.getMessagesBetweenUsers(_currentUserId, widget.user.toUserId),
+              stream: _messageService.getMessagesBetweenUsers(_currentUserId, widget.user.receiverID),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
@@ -88,8 +88,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 // Filter messages for the current chat
                 final messages = snapshot.data!.where((message) => 
-                  (message.fromUserId == _currentUserId && message.toUserId == widget.user.toUserId) ||
-                  (message.fromUserId == widget.user.toUserId && message.toUserId == _currentUserId)
+                  (message.senderID == _currentUserId && message.receiverID == widget.user.receiverID) ||
+                  (message.senderID == widget.user.receiverID && message.receiverID == _currentUserId)
                 ).toList();
 
                 return ListView.builder(
@@ -98,7 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context, index) {
                     return ChatBubble(
                       message: messages[index],
-                      isSender: messages[index].fromUserId == _currentUserId,
+                      isSender: messages[index].senderID == _currentUserId,
                     );
                   },
                 );
@@ -112,16 +112,16 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 }
 
-// The ChatBubble and ChatInputField classes remain the same as in the previous implementation
+// Updated ChatBubble class
 class ChatBubble extends StatelessWidget {
   final Message message;
   final bool isSender;
 
   const ChatBubble({Key? key, required this.message, required this.isSender}) : super(key: key);
 
-  String _formatTimestamp(String timestamp) {
+  String _formatTimestamp(Timestamp timestamp) {
     try {
-      final dateTime = DateTime.parse(timestamp);
+      final dateTime = timestamp.toDate();
       return DateFormat('HH:mm').format(dateTime);
     } catch (e) {
       return '';
@@ -149,12 +149,12 @@ class ChatBubble extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  message.message, 
+                  message.content, 
                   style: TextStyle(fontSize: 16, color: Colors.grey[800]),
                 ),
                 SizedBox(height: 4),
                 Text(
-                  _formatTimestamp(message.timeStamp),
+                  _formatTimestamp(message.dateCreated),
                   style: TextStyle(
                     fontSize: 10, 
                     color: Colors.black54
@@ -163,11 +163,11 @@ class ChatBubble extends StatelessWidget {
               ],
             ),
           ),
-          if (message.status != 'sent')
+          if (message.status != MessageStatus.sent)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                message.status,
+                message.status.toString().split('.').last,
                 style: TextStyle(
                   fontSize: 10, 
                   color: Colors.black54
@@ -180,6 +180,7 @@ class ChatBubble extends StatelessWidget {
   }
 }
 
+// ChatInputField remains the same
 class ChatInputField extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSend;

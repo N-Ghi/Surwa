@@ -2,6 +2,7 @@ class Profile {
   final String userId; // Firebase-generated user ID
   final String username;
   final String name;
+  final String lowercase_username;
   final String? profilePicture;
   final String role;
   final List<String> followers;
@@ -11,6 +12,7 @@ class Profile {
     required this.userId,
     required this.username,
     required this.name,
+    required this.lowercase_username,
     this.profilePicture,
     required this.role,
     this.followers = const [],
@@ -22,6 +24,7 @@ class Profile {
     String? userId,
     String? username,
     String? name,
+    String? lowercase_username,
     String? profilePicture,
     String? role,
     List<String>? followers,
@@ -31,6 +34,7 @@ class Profile {
       userId: userId ?? this.userId,
       username: username ?? this.username,
       name: name ?? this.name,
+      lowercase_username: lowercase_username ?? this.lowercase_username,
       profilePicture: profilePicture ?? this.profilePicture,
       role: role ?? this.role,
       followers: followers ?? this.followers,
@@ -44,6 +48,7 @@ class Profile {
       'userId': userId,
       'username': username,
       'name': name,
+      'lowercase_username': lowercase_username,
       'profilePicture': profilePicture ?? '',
       'role': role,
       'followers': followers,
@@ -57,6 +62,7 @@ class Profile {
       userId: map['userId'] ?? '',
       username: map['username'] ?? '',
       name: map['name'] ?? '',
+      lowercase_username: map['lowercase_username'] ?? '',
       profilePicture: map['profilePicture'],
       role: map['role'] ?? '',
       followers: List<String>.from(map['followers'] ?? []),

@@ -7,6 +7,7 @@ import 'package:surwa/data/models/profile.dart';
 import 'package:surwa/screens/market.dart';
 import 'package:surwa/screens/message.dart';
 import 'package:surwa/screens/profile_search.dart';
+import 'package:surwa/screens/create_post.dart';
 import 'package:surwa/screens/test_screens/AddProduct.dart';
 import 'package:surwa/screens/test_screens/ViewPaymentsPage.dart';
 import 'package:surwa/screens/test_screens/create_post.dart';
@@ -65,13 +66,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     );
 
     // Load Following Posts
-    print("Getting posts by followed users");
-
     _postService.streamPostsByFollowedUsers().listen(
       (posts) {
         setState(() {
           _followingPosts = posts ?? [];
-          print("Following posts: $posts");
         });
       },
       onError: (error) {
@@ -81,7 +79,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   }
 
   void _handlePostLoadError(dynamic error) {
-    print("Error loading posts: $error");
     setState(() {
       _isLoading = false;
     });
@@ -228,7 +225,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       _usernameCache[userId] = username!;
       return username;
     } catch (e) {
-      print("Error fetching username: $e");
       return "Unknown user";
     }
   }
