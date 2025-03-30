@@ -10,7 +10,6 @@ import 'package:surwa/screens/profile_search.dart';
 import 'package:surwa/screens/create_post.dart';
 import 'package:surwa/screens/test_screens/AddProduct.dart';
 import 'package:surwa/screens/test_screens/ViewPaymentsPage.dart';
-import 'package:surwa/screens/test_screens/create_post.dart';
 import 'package:surwa/screens/login.dart';
 import 'package:surwa/screens/profile.dart';
 import 'package:surwa/data/notifiers/auth_notifier.dart';
