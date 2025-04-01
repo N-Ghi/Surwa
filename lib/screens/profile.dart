@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:surwa/data/models/message.dart';
 import 'package:surwa/screens/chat_screen.dart';
 import 'package:surwa/screens/complete_profile.dart';
+import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/screens/login.dart';
+import 'package:surwa/screens/market.dart';
+import 'package:surwa/screens/message.dart';
 import 'package:surwa/screens/settings.dart';
 import 'package:surwa/services/auth_service.dart';
 import 'package:surwa/services/profile_service.dart';
@@ -13,6 +16,7 @@ import 'package:surwa/services/post_service.dart';
 import 'package:surwa/data/models/profile.dart';
 import 'package:surwa/data/models/post.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:surwa/widgets/navigation_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String? username; // Optional username parameter to view other profiles
@@ -38,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _postCount = 0;
   List<Profile> _followers = [];
   List<Profile> _following = [];
+  int _navIndex = 3;
   
   @override
   void initState() {
@@ -404,6 +409,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _onNavTap(int index) {
+    if (index == _navIndex) return; // Already on this screen
+    
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardScreen()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MarketScreen()),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MessagesScreen()));
+        break;
+      case 3:
+        // Already on this screen
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -412,6 +442,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text(_isCurrentUserProfile ? 'Profile' : widget.username ?? ''),
           centerTitle: true,
         ),
+        bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
+      ),
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -419,6 +453,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (_profile == null) {
       return Scaffold(
         appBar: AppBar(title: Text('Profile'), centerTitle: true),
+        bottomNavigationBar: NavbarWidget(
+          currentIndex: _navIndex,
+          onTap: _onNavTap,
+        ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -475,6 +513,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
         ],
+      ),
+      bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
       ),
       body: RefreshIndicator(
         onRefresh: () async {

@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:surwa/data/models/message.dart';
 import 'package:surwa/screens/chat_screen.dart';
+import 'package:surwa/screens/feeds.dart';
+import 'package:surwa/screens/market.dart';
+import 'package:surwa/screens/profile.dart';
 import 'package:surwa/services/message_service.dart';
 import 'package:surwa/services/profile_service.dart';
+import 'package:surwa/widgets/navigation_widget.dart'; // Import the navbar widget
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({Key? key}) : super(key: key);
@@ -18,6 +22,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   ProfileService _profileService = ProfileService();
   final MessageService _messageService = MessageService();
   late String _currentUserId;
+  int _navIndex = 2;
 
   @override
   void initState() {
@@ -30,6 +35,34 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onNavTap(int index) {
+    if (index == _navIndex) return; // Already on this screen
+    
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardScreen()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MarketScreen()),
+        );
+        break;
+      case 2:
+        // Already on this screen
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen()),
+        );
+        break;
+    }
   }
 
   @override
@@ -96,6 +129,10 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
           _buildAllMessagesList(),
           _buildUnreadMessagesList(),
         ],
+      ),
+      bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
       ),
     );
   }

@@ -16,6 +16,7 @@ import 'package:surwa/data/notifiers/auth_notifier.dart';
 import 'package:surwa/services/comment_service.dart';
 import 'package:surwa/services/post_service.dart';
 import 'package:surwa/services/profile_service.dart';
+import 'package:surwa/widgets/navigation_widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class DashboardScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   List<Post> _followingPosts = [];
   bool _isLoading = true;
   final Map<String, String> _usernameCache = {};
+  int _navIndex = 0;
 
   @override
   void initState() {
@@ -463,6 +465,34 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     );
   }
 
+  void _onNavTap(int index) {
+    if (index == _navIndex) return; // Already on this screen
+    
+    switch (index) {
+      case 0:
+        // Already on this screen
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MarketScreen()),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MessagesScreen()),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen()),
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -484,6 +514,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             icon: Icon(Icons.search),
           ),
         ],
+      ),
+      bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
       ),
       drawer: drawer(),
       body: _isLoading 

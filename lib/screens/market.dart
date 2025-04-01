@@ -45,8 +45,7 @@ class MarketScreen extends StatefulWidget {
 
 class _MarketScreenState extends State<MarketScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedIndex = 1; // Set to Market index
-  late TabController _tabController;
+  int _navIndex = 1;  late TabController _tabController;
   final ProductService _productService = ProductService();
 
   @override
@@ -61,24 +60,27 @@ class _MarketScreenState extends State<MarketScreen>
     super.dispose();
   }
 
-  void _onBottomNavTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Handle navigation based on the selected index using named routes
+  void _onNavTap(int index) {
+    if (index == _navIndex) return; // Already on this screen
+    
     switch (index) {
       case 0:
-        Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardScreen()),
+        );
         break;
       case 1:
-        // Already on market screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MarketScreen()),
+        );
         break;
       case 2:
-        Navigator.push(context, MaterialPageRoute(builder: (context) => MessagesScreen()));
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MessagesScreen()));
         break;
       case 3:
-        Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
+        // Already on this screen
         break;
     }
   }
@@ -400,11 +402,11 @@ class _MarketScreenState extends State<MarketScreen>
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
+        currentIndex: _navIndex,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
-        onTap: _onBottomNavTap,
+        onTap: _onNavTap,
         items: [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Feed'),
           BottomNavigationBarItem(
