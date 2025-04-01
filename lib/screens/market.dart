@@ -178,25 +178,30 @@ class _MarketScreenState extends State<MarketScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Search Bar
-                Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                Row(
+                  children: [
+                    Icon(Icons.add_box_outlined),
+                    Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      hintText: 'Discover art, culture, and fashion in Rwanda',
-                      hintStyle: TextStyle(fontSize: 14),
-                      border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search),
-                      suffixIcon: Icon(Icons.mic),
+                      child: TextField(
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          hintText: 'Discover art, culture, and fashion in Rwanda',
+                          hintStyle: TextStyle(fontSize: 14),
+                          border: InputBorder.none,
+                          prefixIcon: Icon(Icons.search),
+                          suffixIcon: Icon(Icons.mic),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
                 SizedBox(height: 16),
 
