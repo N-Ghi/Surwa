@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:surwa/data/DTOs/ProductDTO.dart';
 import 'package:surwa/data/models/product.dart';
+import 'package:surwa/screens/feeds.dart';
+import 'package:surwa/screens/message.dart';
+import 'package:surwa/screens/profile.dart';
 import 'package:surwa/screens/singleproduct.dart';
 import 'package:surwa/screens/test_screens/ViewCart.dart';
 import 'package:surwa/services/product_service.dart';
@@ -66,16 +69,16 @@ class _MarketScreenState extends State<MarketScreen>
     // Handle navigation based on the selected index using named routes
     switch (index) {
       case 0:
-        Navigator.pushNamed(context, '/feeds');
+        Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
         break;
       case 1:
         // Already on market screen
         break;
       case 2:
-        Navigator.pushNamed(context, '/messages');
+        Navigator.push(context, MaterialPageRoute(builder: (context) => MessagesScreen()));
         break;
       case 3:
-        Navigator.pushNamed(context, '/profile');
+        Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
         break;
     }
   }

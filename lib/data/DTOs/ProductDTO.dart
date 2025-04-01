@@ -16,4 +16,6 @@ class ProductDTO {
     required this.category,
     required this.quantity
   });
+
+  String? get reviews => null;
 }
