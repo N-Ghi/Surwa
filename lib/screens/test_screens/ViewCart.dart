@@ -116,9 +116,6 @@ Widget _buildCheckoutButton(BuildContext context, List<Cart> carts) {
       }
     }
     
-    // Debug print
-    print("Total amount calculated: $totalAmount");
-    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -141,7 +138,7 @@ Widget _buildCheckoutButton(BuildContext context, List<Cart> carts) {
               children: [
                 const Text(
                   "Total Amount",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: 12),
                 ),
                 Text(
           "${totalAmount.toStringAsFixed(2)}rwf",
