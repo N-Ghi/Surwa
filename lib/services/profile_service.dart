@@ -5,7 +5,6 @@
   import 'package:supabase_flutter/supabase_flutter.dart';
   import 'package:surwa/services/image_picker_service.dart';
   import 'package:surwa/data/models/profile.dart'; 
-  import 'package:shared_preferences/shared_preferences.dart';
 
   class ProfileService {
 
@@ -127,7 +126,6 @@
     try {
       if (currentUser == null) return null;
 
-      debugSharedPreferences();
       String userId = currentUser!.uid;
       DocumentSnapshot doc = await profileCollection.doc(userId).get();
       
@@ -577,14 +575,5 @@
       return [];
     }
   }
-
-
-void debugSharedPreferences() async {
-  print("Debugging SharedPreferences:");
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  prefs.getKeys().forEach((key) {
-    print('$key: ${prefs.get(key)}');
-  });
-}
 
 }

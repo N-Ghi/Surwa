@@ -16,6 +16,7 @@ import 'package:surwa/data/notifiers/auth_notifier.dart';
 import 'package:surwa/services/comment_service.dart';
 import 'package:surwa/services/post_service.dart';
 import 'package:surwa/services/profile_service.dart';
+import 'package:surwa/widgets/navigation_widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 class DashboardScreen extends StatefulWidget {
@@ -36,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
   List<Post> _followingPosts = [];
   bool _isLoading = true;
   final Map<String, String> _usernameCache = {};
+  int _navIndex = 0;
 
   @override
   void initState() {
@@ -44,11 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     _loadPosts();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+  
 
   void _loadPosts() {
     // Load Discover Posts (all posts except current user's)
@@ -84,103 +82,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Error loading posts: $error")),
     );
-  }
-
-  Widget drawer() {
-    return Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Home'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.message),
-              title: Text('Messages'),
-              onTap: () {
-                // Navigate to settings page
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return MessagesScreen();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Profile'),
-              onTap: () {
-                // Navigate to settings page
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return ProfileScreen();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.add_a_photo),
-              title: Text('Posts'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return PostSetup();
-                }));
-              },
-            ),
-             ListTile(
-              leading: Icon(Icons.sell),
-              title: Text('Products'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return MarketScreen();
-                }));
-              },
-            ),
-             ListTile(
-              leading: Icon(Icons.add),
-              title: Text('Add Products'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return AddProductScreen();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.payment),
-              title: Text('Payments'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return ViewPaymentsPage();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
-              onTap: () {
-                // Logout user
-                AuthNotifier authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-                authNotifier.signOut();
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
-                  return LoginScreen();
-                }));
-              },
-            ),
-          ],
-        ),
-      );
   }
   
   Future<void> _addComment(String postId) async {
@@ -463,6 +364,41 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     );
   }
 
+  void _onNavTap(int index) {
+    if (index == _navIndex) return; // Already on this screen
+    
+    switch (index) {
+      case 0:
+        // Already on this screen
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MarketScreen()),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => PostSetup()),
+        );
+        break;
+
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MessagesScreen()),
+        );
+        break;
+      case 4:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen()),
+        );
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -485,7 +421,10 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
           ),
         ],
       ),
-      drawer: drawer(),
+      bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
+      ),
       body: _isLoading 
         ? Center(
             child: Column(
@@ -505,5 +444,11 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             ],
           ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 }

@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:surwa/data/DTOs/ProductDTO.dart';
 import 'package:surwa/data/models/product.dart';
+import 'package:surwa/data/models/profile.dart';
+import 'package:surwa/screens/create_post.dart';
+import 'package:surwa/screens/feeds.dart';
+import 'package:surwa/screens/message.dart';
+import 'package:surwa/screens/product_slide.dart';
+import 'package:surwa/screens/profile.dart';
 import 'package:surwa/screens/singleproduct.dart';
+import 'package:surwa/screens/test_screens/AddProduct.dart';
 import 'package:surwa/screens/test_screens/ViewCart.dart';
 import 'package:surwa/services/product_service.dart';
+import 'package:surwa/services/profile_service.dart';
+import 'package:surwa/widgets/navigation_widget.dart';
 
 class ShoppingCartScreen extends StatelessWidget {
   const ShoppingCartScreen({super.key});
@@ -42,14 +51,16 @@ class MarketScreen extends StatefulWidget {
 
 class _MarketScreenState extends State<MarketScreen>
     with SingleTickerProviderStateMixin {
-  int _selectedIndex = 1; // Set to Market index
-  late TabController _tabController;
+  int _navIndex = 1;  late TabController _tabController;
   final ProductService _productService = ProductService();
+  final ProfileService _profileService = ProfileService();
+  bool isArtist = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _checkIfArtist();
   }
 
   @override
@@ -58,28 +69,58 @@ class _MarketScreenState extends State<MarketScreen>
     super.dispose();
   }
 
-  void _onBottomNavTap(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    // Handle navigation based on the selected index using named routes
+  void _onNavTap(int index) {
+    if (index == _navIndex) return; // Already on this screen
+    
     switch (index) {
       case 0:
-        Navigator.pushNamed(context, '/feeds');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardScreen()),
+        );
         break;
       case 1:
-        // Already on market screen
+      // Already here
         break;
       case 2:
-        Navigator.pushNamed(context, '/messages');
-        break;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => PostSetup()));
+      break;
       case 3:
-        Navigator.pushNamed(context, '/profile');
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MessagesScreen()));
+        break;
+      case 4:
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
         break;
     }
   }
 
+  Future<void> _checkIfArtist() async {
+  try {
+    // Get the current user's profile using the existing function
+    Profile? userProfile = await _profileService.getLoggedInUserProfile();
+    
+    // Check if the profile exists and has the artist flag
+    if (userProfile != null) {
+      if (userProfile.role == 'Artist') {
+        setState(() {
+          isArtist = true;
+        });
+        return;
+      }
+    } else {
+      // No profile found, set to false or handle accordingly
+      setState(() {
+        isArtist = false;
+      });
+    }
+  } catch (e) {
+    // Handle any errors
+    print('Error checking artist status: $e');
+    setState(() {
+      isArtist = false;
+    });
+  }
+}
   // List of category items
   final List<Map<String, String>> _categories = [
     {'icon': 'clothing', 'label': 'Clothing'},
@@ -92,7 +133,7 @@ class _MarketScreenState extends State<MarketScreen>
   // List of popular items
   final List<Map<String, dynamic>> _popularItems = [
     {
-      'image': 'images/basket.jpg',
+      'image': 'assets/images/basket.jpg',
       'name': 'Handmade Basket',
       'description': 'Traditional Rwandan woven basket',
       'price': '5,000 Frw',
@@ -100,7 +141,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 0,
     },
     {
-      'image': 'images/kitenge.jpg',
+      'image': 'assets/images/kitenge.jpg',
       'name': 'Igitenge Bag',
       'description': 'Colorful African fabric bag',
       'price': '10,000 Frw',
@@ -108,7 +149,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 0,
     },
     {
-      'image': 'images/woodcarving.jpg',
+      'image': 'assets/images/woodcarving.jpg',
       'name': 'Wooden Sculpture',
       'description': 'Hand-carved Imigongo art piece',
       'price': '15,000 Frw',
@@ -116,7 +157,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 0,
     },
     {
-      'image': 'images/jewelry.jpg',
+      'image': 'assets/images/jewelry.jpg',
       'name': 'Beaded Necklace',
       'description': 'Traditional Rwandan jewelry',
       'price': '7,500 Frw',
@@ -128,7 +169,7 @@ class _MarketScreenState extends State<MarketScreen>
   // List of hot deal items (with discounts)
   final List<Map<String, dynamic>> _hotDealItems = [
     {
-      'image': 'images/basket.jpg',
+      'image': 'assets/images/basket.jpg',
       'name': 'Handmade Basket',
       'description': 'Traditional Rwandan woven basket',
       'price': '4,000 Frw',
@@ -136,7 +177,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 20,
     },
     {
-      'image': 'images/kitenge.jpg',
+      'image': 'assets/images/kitenge.jpg',
       'name': 'Igitenge Bag',
       'description': 'Colorful African fabric bag',
       'price': '8,000 Frw',
@@ -144,7 +185,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 20,
     },
     {
-      'image': 'images/woodcarving.jpg',
+      'image': 'assets/images/woodcarving.jpg',
       'name': 'Wooden Sculpture',
       'description': 'Hand-carved Imigongo art piece',
       'price': '12,000 Frw',
@@ -152,7 +193,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 20,
     },
     {
-      'image': 'images/jewelry.jpg',
+      'image': 'assets/images/jewelry.jpg',
       'name': 'Beaded Necklace',
       'description': 'Traditional Rwandan jewelry',
       'price': '6,000 Frw',
@@ -164,7 +205,6 @@ class _MarketScreenState extends State<MarketScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFF59D), // Light yellow background
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -172,85 +212,55 @@ class _MarketScreenState extends State<MarketScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Search Bar
-                Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                // Add Products
+                Row(
+                  children: [
+                    isArtist 
+                      ? IconButton(
+                          onPressed: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => AddProductScreen()));
+                          }, 
+                          icon: Icon(Icons.add_circle_outline)
+                        )
+                      : SizedBox(),
+                    // Search bar
+                    Expanded(
+                      child: Container(
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            hintText: 'Discover art, culture, and fashion in Rwanda',
+                            hintStyle: TextStyle(fontSize: 14),
+                            border: InputBorder.none,
+                            prefixIcon: Icon(Icons.search),
+                            suffixIcon: Icon(Icons.mic),
+                          ),
+                        ),
                       ),
-                      hintText: 'Discover art, culture, and fashion in Rwanda',
-                      hintStyle: TextStyle(fontSize: 14),
-                      border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search),
-                      suffixIcon: Icon(Icons.mic),
                     ),
-                  ),
+                    IconButton(onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => CartPage()));
+                    }, icon: Icon(Icons.shopping_cart_outlined))
+                  ],
                 ),
                 SizedBox(height: 16),
 
                 // Art and Design Banner
                 Container(
-                  height: 150,
-                  decoration: BoxDecoration(
-                    color: Colors.green[600],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'My Cart',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => CartPage()));
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.green[600],
-                                ),
-                                child: Text('My cart'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: CircleAvatar(
-                          radius: 25,
-                          backgroundImage: AssetImage(
-                            'assets/images/patrickprofile.jpg',
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: ProductSlideshow(
+                    products: _popularItems,
+                    slideDuration: const Duration(seconds: 4),
                   ),
                 ),
                 SizedBox(height: 16),
-
                 // Categories
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -396,21 +406,9 @@ class _MarketScreenState extends State<MarketScreen>
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        onTap: _onBottomNavTap,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Feed'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_basket),
-            label: 'Market',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Account'),
-        ],
+      bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
       ),
     );
   }
@@ -423,16 +421,17 @@ class _MarketScreenState extends State<MarketScreen>
             context,
             MaterialPageRoute(
                 builder: (context) => SingleProductPage(
-                      product: ProductDTO(
-                          productId: item['id'],
-                          name: item['name'],
-                          price: item['price'],
-                          imageUrl: item['image'],
-                          description: item['description'],
-                          category: item['category'],
-                          quantity: item['quantity']
-                          ),
-                    )),
+                  product: ProductDTO(
+                    productId: item['id'],
+                    name: item['name'],
+                    price: item['price'],
+                    imageUrl: item['image'],
+                    description: item['description'],
+                    category: item['category'],
+                    quantity: item['quantity']
+                  ),
+                )
+              ),
           );
         },
         child: Container(
