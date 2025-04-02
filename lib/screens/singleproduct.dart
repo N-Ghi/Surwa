@@ -16,17 +16,6 @@ class SingleProductPage extends StatelessWidget {
           icon: Icon(Icons.arrow_back ),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.shopping_cart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ShoppingCartPage()),
-              );
-            },
-          ),
-        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -74,9 +63,11 @@ class SingleProductPage extends StatelessWidget {
             ),
             SizedBox(height: 10),
             ElevatedButton(
-              onPressed: product.quantity > 0 ? () {} : null,
+              onPressed: product.quantity > 0 ? () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => OrderPage(productId: product.productId)));
+              } : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.yellow,
+                backgroundColor: const Color.fromARGB(255, 137, 137, 136),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: Text('Buy'),
@@ -90,29 +81,10 @@ class SingleProductPage extends StatelessWidget {
               ],
             ),
             SizedBox(height: 10),
-            Text(
-              'Hand Made Basket',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
             Text(product.description),
-            Text(
-              'wow this is a good product',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text(product.reviews ?? '')
+            Text(product.reviews ?? '')
           ],
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: const Color.fromARGB(255, 153, 151, 151),
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Feed"),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Market"),
-          BottomNavigationBarItem(icon: Icon(Icons.message), label: "Messages"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: "Account"),
-        ],
       ),
     );
   }
@@ -133,7 +105,7 @@ class TabButton extends StatelessWidget {
         style: TextStyle(
           fontSize: 16,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          color: isSelected ? Colors.black : Colors.grey,
+          color: Colors.grey,
         ),
       ),
     );

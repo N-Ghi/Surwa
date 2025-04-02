@@ -60,6 +60,7 @@ class _MarketScreenState extends State<MarketScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _checkIfArtist();
   }
 
   @override
@@ -219,7 +220,7 @@ class _MarketScreenState extends State<MarketScreen>
                           onPressed: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => AddProductScreen()));
                           }, 
-                          icon: Icon(Icons.add)
+                          icon: Icon(Icons.add_circle_outline)
                         )
                       : SizedBox(),
                     // Search bar
