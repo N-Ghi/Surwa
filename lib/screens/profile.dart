@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:surwa/data/models/message.dart';
+import 'package:surwa/data/notifiers/auth_notifier.dart';
 import 'package:surwa/screens/chat_screen.dart';
 import 'package:surwa/screens/complete_profile.dart';
 import 'package:surwa/screens/create_post.dart';
@@ -504,6 +506,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         title: Text('Settings'),
                         onTap: () {
                           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SettingsPage()));
+                        },
+                      ),
+                      ListTile(
+                        leading: Icon(Icons.logout),
+                        title: Text('Logout'),
+                        onTap: () {
+                          // Logout user
+                          AuthNotifier authNotifier = Provider.of<AuthNotifier>(context, listen: false);
+                          authNotifier.signOut();
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
+                            return LoginScreen();
+                          }));
                         },
                       ),
                       ListTile(

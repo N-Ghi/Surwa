@@ -168,7 +168,7 @@ class _MarketScreenState extends State<MarketScreen>
   // List of hot deal items (with discounts)
   final List<Map<String, dynamic>> _hotDealItems = [
     {
-      'image': 'images/basket.jpg',
+      'image': 'assets/images/basket.jpg',
       'name': 'Handmade Basket',
       'description': 'Traditional Rwandan woven basket',
       'price': '4,000 Frw',
@@ -176,7 +176,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 20,
     },
     {
-      'image': 'images/kitenge.jpg',
+      'image': 'assets/images/kitenge.jpg',
       'name': 'Igitenge Bag',
       'description': 'Colorful African fabric bag',
       'price': '8,000 Frw',
@@ -184,7 +184,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 20,
     },
     {
-      'image': 'images/woodcarving.jpg',
+      'image': 'assets/images/woodcarving.jpg',
       'name': 'Wooden Sculpture',
       'description': 'Hand-carved Imigongo art piece',
       'price': '12,000 Frw',
@@ -192,7 +192,7 @@ class _MarketScreenState extends State<MarketScreen>
       'discount': 20,
     },
     {
-      'image': 'images/jewelry.jpg',
+      'image': 'assets/images/jewelry.jpg',
       'name': 'Beaded Necklace',
       'description': 'Traditional Rwandan jewelry',
       'price': '6,000 Frw',
@@ -420,16 +420,17 @@ class _MarketScreenState extends State<MarketScreen>
             context,
             MaterialPageRoute(
                 builder: (context) => SingleProductPage(
-                      product: ProductDTO(
-                          productId: item['id'],
-                          name: item['name'],
-                          price: item['price'],
-                          imageUrl: item['image'],
-                          description: item['description'],
-                          category: item['category'],
-                          quantity: item['quantity']
-                          ),
-                    )),
+                  product: ProductDTO(
+                    productId: item['id'],
+                    name: item['name'],
+                    price: item['price'],
+                    imageUrl: item['image'],
+                    description: item['description'],
+                    category: item['category'],
+                    quantity: item['quantity']
+                  ),
+                )
+              ),
           );
         },
         child: Container(

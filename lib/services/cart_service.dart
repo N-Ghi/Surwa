@@ -3,8 +3,7 @@ import 'package:surwa/data/constants/cartStatus.dart';
 import 'package:surwa/data/models/cart.dart';
 
 class CartService {
-  final CollectionReference cartCollection =
-      FirebaseFirestore.instance.collection('Cart');
+  final CollectionReference cartCollection = FirebaseFirestore.instance.collection('Cart');
   Future<void> createOrUpdateCart(
       String userId, String orderId, String price) async {
     try {

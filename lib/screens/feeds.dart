@@ -83,76 +83,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       SnackBar(content: Text("Error loading posts: $error")),
     );
   }
-
-  Widget drawer() {
-    return Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Menu',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.add_a_photo),
-              title: Text('Posts'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return PostSetup();
-                }));
-              },
-            ),
-             ListTile(
-              leading: Icon(Icons.sell),
-              title: Text('Products'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return MarketScreen();
-                }));
-              },
-            ),
-             ListTile(
-              leading: Icon(Icons.add),
-              title: Text('Add Products'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return AddProductScreen();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.payment),
-              title: Text('Payments'),
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return ViewPaymentsPage();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
-              onTap: () {
-                // Logout user
-                AuthNotifier authNotifier = Provider.of<AuthNotifier>(context, listen: false);
-                authNotifier.signOut();
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
-                  return LoginScreen();
-                }));
-              },
-            ),
-          ],
-        ),
-      );
-  }
   
   Future<void> _addComment(String postId) async {
     if (_commentController.text.trim().isEmpty) {
@@ -495,7 +425,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
         currentIndex: _navIndex,
         onTap: _onNavTap,
       ),
-      drawer: drawer(),
       body: _isLoading 
         ? Center(
             child: Column(
