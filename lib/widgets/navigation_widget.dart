@@ -52,7 +52,7 @@ class _NavbarWidgetState extends State<NavbarWidget> {
   Widget build(BuildContext context) {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      currentIndex: _selectedIndex,
+      currentIndex: widget.currentIndex,
       selectedItemColor: Colors.green,
       unselectedItemColor: Colors.grey,
       onTap: _onBottomNavTap,
@@ -62,7 +62,7 @@ class _NavbarWidgetState extends State<NavbarWidget> {
           icon: Icon(Icons.shopping_basket),
           label: 'Market',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.add_a_photo), label: 'Post'),
+        BottomNavigationBarItem(icon: Icon(Icons.add_a_photo), label: 'Post', backgroundColor: Colors.green),
         BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Account'),
       ],
