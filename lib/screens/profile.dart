@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:surwa/data/models/message.dart';
 import 'package:surwa/screens/chat_screen.dart';
 import 'package:surwa/screens/complete_profile.dart';
+import 'package:surwa/screens/create_post.dart';
 import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/screens/login.dart';
 import 'package:surwa/screens/market.dart';
@@ -42,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _postCount = 0;
   List<Profile> _followers = [];
   List<Profile> _following = [];
-  int _navIndex = 3;
+  int _navIndex = 4;
   
   @override
   void initState() {
@@ -425,10 +426,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           MaterialPageRoute(builder: (context) => MarketScreen()),
         );
         break;
-      case 2:
+        case 2:
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => PostSetup()),
+      );
+      break;
+      case 3:
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MessagesScreen()));
         break;
-      case 3:
+      case 4:
         // Already on this screen
         break;
     }

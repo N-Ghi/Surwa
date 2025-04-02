@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:surwa/data/models/message.dart';
 import 'package:surwa/screens/chat_screen.dart';
+import 'package:surwa/screens/create_post.dart';
 import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/screens/market.dart';
 import 'package:surwa/screens/profile.dart';
@@ -22,7 +23,7 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
   ProfileService _profileService = ProfileService();
   final MessageService _messageService = MessageService();
   late String _currentUserId;
-  int _navIndex = 2;
+  int _navIndex = 3;
 
   @override
   void initState() {
@@ -54,9 +55,15 @@ class _MessagesScreenState extends State<MessagesScreen> with SingleTickerProvid
         );
         break;
       case 2:
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => PostSetup()),
+      );
+      break;
+      case 3:
         // Already on this screen
         break;
-      case 3:
+      case 4:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ProfileScreen()),

@@ -2,12 +2,17 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:surwa/data/models/comment.dart';
 import 'package:surwa/data/models/profile.dart';
+import 'package:surwa/screens/feeds.dart';
+import 'package:surwa/screens/market.dart';
+import 'package:surwa/screens/message.dart';
+import 'package:surwa/screens/profile.dart';
 import 'package:surwa/services/comment_service.dart';
 import 'package:surwa/services/post_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:surwa/data/models/post.dart';
 import 'package:surwa/services/profile_service.dart';
+import 'package:surwa/widgets/navigation_widget.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
 
@@ -28,6 +33,7 @@ class _PostSetupState extends State<PostSetup> {
   List<Post> _userPosts = [];
   bool _isLoading = true;
   final Map<String, String> _usernameCache = {};
+  int _navIndex = 2;
   
   @override
   void initState() {
@@ -222,6 +228,30 @@ class _PostSetupState extends State<PostSetup> {
     }
   }
 
+  void _onNavTap(int index) {
+      setState(() {
+        _navIndex = index;
+      });
+
+      // Handle navigation based on the selected index using named routes
+      switch (index) {
+        case 0:
+          Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardScreen()));
+          break;
+        case 1:
+          Navigator.push(context, MaterialPageRoute(builder: (context) => MarketScreen()));
+          break;
+        case 2:
+          break;
+        case 3:
+          Navigator.push(context, MaterialPageRoute(builder: (context) => MessagesScreen()));
+          break;
+        case 4:
+          Navigator.push(context, MaterialPageRoute(builder: (context) => ProfileScreen()));
+          break;
+      }
+    }
+
   // Comment Section
   Future<void> _commentSection(Post post) async {
     return showModalBottomSheet(
@@ -360,6 +390,10 @@ class _PostSetupState extends State<PostSetup> {
           title: Text("My Posts"),
           centerTitle: true,
         ),
+        bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
+      ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -379,6 +413,10 @@ class _PostSetupState extends State<PostSetup> {
         appBar: AppBar(
           title: Text("My Posts"),
           centerTitle: true,
+        ),
+        bottomNavigationBar: NavbarWidget(
+          currentIndex: _navIndex,
+          onTap: _onNavTap,
         ),
         body: Center(
           child: Column(
@@ -410,6 +448,10 @@ class _PostSetupState extends State<PostSetup> {
             tooltip: "Add Post",
           ),
         ],
+      ),
+      bottomNavigationBar: NavbarWidget(
+        currentIndex: _navIndex,
+        onTap: _onNavTap,
       ),
       // View posts by user
       body: ListView.builder(

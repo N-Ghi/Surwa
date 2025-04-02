@@ -46,11 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
     _loadPosts();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+  
 
   void _loadPosts() {
     // Load Discover Posts (all posts except current user's)
@@ -104,33 +100,6 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
                   fontSize: 24,
                 ),
               ),
-            ),
-            ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Home'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.message),
-              title: Text('Messages'),
-              onTap: () {
-                // Navigate to settings page
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return MessagesScreen();
-                }));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Profile'),
-              onTap: () {
-                // Navigate to settings page
-                Navigator.push(context, MaterialPageRoute(builder: (context) {
-                  return ProfileScreen();
-                }));
-              },
             ),
             ListTile(
               leading: Icon(Icons.add_a_photo),
@@ -481,10 +450,17 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
       case 2:
         Navigator.pushReplacement(
           context,
+          MaterialPageRoute(builder: (context) => PostSetup()),
+        );
+        break;
+
+      case 3:
+        Navigator.pushReplacement(
+          context,
           MaterialPageRoute(builder: (context) => MessagesScreen()),
         );
         break;
-      case 3:
+      case 4:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => ProfileScreen()),
@@ -539,5 +515,11 @@ class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProv
             ],
           ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 }
