@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import 'package:surwa/widgets/auth_wrap.dart';
 import 'package:surwa/data/notifiers/profile_completion_notifier.dart';
 import 'package:surwa/screens/complete_profile.dart';
 import 'package:surwa/screens/feeds.dart';
 import 'package:surwa/screens/login.dart';
+
+import 'auth_service_test.dart';
 
 @GenerateMocks([FirebaseAuth, ProfileCompletionNotifier])
 void main() {
@@ -111,3 +113,6 @@ void main() {
     expect(find.text("Loading profile..."), findsOneWidget);
   });
 }
+
+class MockUser extends Mock implements User {}
+

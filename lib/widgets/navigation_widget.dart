@@ -22,6 +22,7 @@ class NavbarWidget extends StatefulWidget {
 class _NavbarWidgetState extends State<NavbarWidget> {
   int _selectedIndex = 0;
 
+
   void _onBottomNavTap(int index) {
       setState(() {
         _selectedIndex = index;
